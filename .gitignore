@@ -1,0 +1,8 @@
+
+# My local setup
+.vscode
+# .flake8  # linter settings :)
+
+# Python temp files
+**.ipynb_checkpoints
+*.pyc
