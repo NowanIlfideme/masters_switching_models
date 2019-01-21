@@ -6,3 +6,8 @@
 # Python temp files
 **.ipynb_checkpoints
 *.pyc
+
+# setuptools files
+src/*.egg-info
+src/build
+src/dist
