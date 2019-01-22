@@ -6,6 +6,7 @@
 # Python temp files
 **.ipynb_checkpoints
 *.pyc
+__pycache__
 
 # setuptools files
 src/*.egg-info
