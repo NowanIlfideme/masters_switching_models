@@ -81,7 +81,7 @@ class VARXGenerator(SeriesGenerator):
         rng = cls._fix_rng(random_state)
 
         # Generate AR coefficients
-        lags = np.arange(0, p_max)[
+        lags = np.arange(1, p_max + 1)[
             rng.binomial(1, p_portion, size=p_max).astype(bool)
         ]
 
