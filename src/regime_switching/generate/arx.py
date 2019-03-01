@@ -130,6 +130,18 @@ class VARXGenerator(SeriesGenerator):
         """All (endogenous) lags used in the model."""
         return sorted(self.coef_ar.keys()) 
     
+    @property
+    def coef_ar_df(self):
+        """AR coeffs as a dataframe."""
+        df1 = pd.concat([
+            pd.concat([
+                pd.Series(k, index=self.endogenous, name='lag'), 
+                self.coef_ar[k]], axis='columns'
+            )
+            for k in self.coef_ar.keys()
+        ], axis='rows')
+        return df1.set_index(['lag', df1.index])
+
     def generate(self, index, exog=None, random_state=None):
         """Generates an independent chain for `index`.
 
