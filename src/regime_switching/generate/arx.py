@@ -56,6 +56,60 @@ class VARXGenerator(SeriesGenerator):
 
         # TODO: Deal with incorrect indexes being passed.
 
+    @classmethod
+    def random_model(
+        cls, n, m=0, p_max=1, p_portion=1.0, 
+        cov_min_rank=None, cov_max_rank=None, 
+        random_state=None
+    ):
+        """Generates a model, based on parameters passed. 
+        
+        Parameters
+        ----------
+        n, m : int
+            Number of endogenous and exogenous variables.
+        p_max : int
+            Maximum lag to use.
+        p_portion : float
+            What portion of the lags to use. To use all, set to 1.
+        cov_min_rank, cov_max_rank : int or None
+            Minimum, maximum ranks of the covariance matrix. 
+            If None, sets to n. 
+        random_state : None, int, np.RandomState
+            Random state for `random_model`, not the resulting generator!
+        """
+        rng = cls._fix_rng(random_state)
+
+        # Generate AR coefficients
+        lags = np.arange(0, p_max)[
+            rng.binomial(1, p_portion, size=p_max).astype(bool)
+        ]
+
+        # HACK: Force stationarity! 
+        # Currently doesn't, it's just a random matrix per coef
+        coef_ar = {
+            lag: rng.uniform(-0.5, 1, size=(n, n))
+            for lag in lags
+        }
+
+        coef_exog = rng.uniform(0, 1, size=(m, n)) 
+        constants = rng.uniform(-1, 1, size=(n)) 
+
+        # Generate covariance matrix
+        if cov_min_rank is None:
+            cov_min_rank = n
+        if cov_max_rank is None:
+            cov_max_rank = n
+        rank_L = rng.randint(cov_min_rank, cov_max_rank + 1)
+        L = rng.uniform(-0.5, 1, size=(n, rank_L))
+        covariance = L @ L.T 
+
+        return cls(
+            coef_ar=coef_ar, coef_exog=coef_exog, 
+            constants=constants, covariance=covariance, 
+            random_state=rng.randint(100000)
+        )
+
     @property
     def endogenous(self):
         """Names of endogenous variables (components)."""
