@@ -1,5 +1,7 @@
 [flake8]
+max-line-length = 80
 
+select = C,E,F,W,B,B950
 ignore = 
     W291, W293, W391,  # whitespace
-    
+    E501,  # allow some beyond lines
