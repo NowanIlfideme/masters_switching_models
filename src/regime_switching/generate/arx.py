@@ -2,6 +2,10 @@ import numpy as np
 import pandas as pd
 from regime_switching.generate import SeriesGenerator
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class VARXGenerator(SeriesGenerator):
     """VARX model (n dimensions, k lags, m exogenous).
@@ -85,13 +89,24 @@ class VARXGenerator(SeriesGenerator):
         rng = cls._fix_rng(random_state)
 
         # Generate AR coefficients
-        lags = np.arange(1, p_max + 1)[
-            rng.binomial(1, p_portion, size=p_max).astype(bool)
-        ]
+        # HACK: Forces stationarity only via multiple applications. Possibly improve.
+        is_stationary = False
+        while not is_stationary:
+            lags = np.arange(1, p_max + 1)[
+                rng.binomial(1, p_portion, size=p_max).astype(bool)
+            ]
+            coef_ar = {lag: rng.uniform(-0.5, 1, size=(n, n)) for lag in lags}
 
-        # HACK: Force stationarity!
-        # Currently doesn't, it's just a random matrix per coef
-        coef_ar = {lag: rng.uniform(-0.5, 1, size=(n, n)) for lag in lags}
+            n_ar = max(lags)
+            c_hi = np.zeros((0, n))
+            for lag in range(1, n_ar + 1):
+                c_hi = np.r_[c_hi, coef_ar.get(lag, np.zeros((n, n)))]
+
+            A = np.c_[c_hi, np.eye(n * n_ar, n * (n_ar - 1))]
+            eigv = np.linalg.eigvals(A)
+            is_stationary = np.all(np.abs(eigv) < 1)
+            if not is_stationary:
+                logging.warning("Failed to make stable eigenvals, trying again.")
 
         coef_exog = rng.uniform(0, 1, size=(m, n))
         constants = rng.uniform(-1, 1, size=(n))
@@ -133,20 +148,24 @@ class VARXGenerator(SeriesGenerator):
         """All (endogenous) lags used in the model."""
         return sorted(self.coef_ar.keys())
 
-    @property
-    def coef_ar_df(self):
-        """AR coeffs as a dataframe."""
+    @staticmethod
+    def _get_coef_ar_df(endogenous, coef_ar):
         df1 = pd.concat(
             [
                 pd.concat(
-                    [pd.Series(k, index=self.endogenous, name="lag"), self.coef_ar[k]],
+                    [pd.Series(k, index=endogenous, name="lag"), coef_ar[k]],
                     axis="columns",
                 )
-                for k in self.coef_ar.keys()
+                for k in coef_ar.keys()
             ],
             axis="rows",
         )
         return df1.set_index(["lag", df1.index])
+
+    @property
+    def coef_ar_df(self):
+        """AR coeffs as a dataframe."""
+        return self._get_coef_ar_df(self.endogenous, self.coef_ar)
 
     def generate(self, index, exog=None, random_state=None, initial_values=None):
         """Generates an independent chain for `index`.
