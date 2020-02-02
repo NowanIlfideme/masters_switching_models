@@ -3,12 +3,16 @@
 .vscode
 # .flake8  # linter settings :)
 
+# Data & output files
+/data
+/output
+
 # Python temp files
 **.ipynb_checkpoints
 *.pyc
 __pycache__
 
 # setuptools files
-src/*.egg-info
-src/build
-src/dist
+/src/*.egg-info
+/src/build
+/src/dist
