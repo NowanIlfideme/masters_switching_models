@@ -6,6 +6,7 @@
 # Data & output files
 /data
 /output
+/materials
 
 # Python temp files
 **.ipynb_checkpoints
