@@ -1,0 +1,281 @@
+\documentclass[a4paper,14pt]{extreport}
+\usepackage[utf8]{inputenc}
+\usepackage[T1, T2A]{fontenc}
+\usepackage[english, russian]{babel}
+
+% Оформление глав, разделов и т.д.
+\makeatletter
+
+% Не подавлять абзацный отступ в главах
+\renewcommand{\chapter} {
+  \cleardoublepage\thispagestyle{plain}
+  \global\@topnum=0 \@afterindenttrue \secdef\@chapter\@schapter
+}
+
+% Оформление нумерованных глав
+\renewcommand{\@makechapterhead}[1] {
+  \vspace{36pt} % Пустое место вверху страницы
+  {
+    \centering
+    \parindent=18pt
+    \normalfont\Large\bfseries
+    \chaptername ~ \thechapter{} \par % Номер главы
+    #1 \par % Заголовок текста с новой строки
+    \nopagebreak % Не отрываем заголовок от текста
+    \vspace{36pt} % Пустое место между заголовком и текстом
+  }
+}
+
+% Оформление ненумерованных глав
+\renewcommand{\@makeschapterhead}[1] {
+  \vspace{36pt} % Пустое место вверху страницы
+  {
+    \centering
+    \parindent=18pt
+    \normalfont\Large\bfseries #1 \par
+    \nopagebreak % чтобы не оторвать заголовок от текста
+    \vspace{25pt} % между заголовком и текстом
+  }
+}
+
+% Оформление разделов
+\renewcommand{\section} {
+    \@startsection{section}
+                  {1}
+                  {18pt}
+                  {3.5ex plus 1ex minus .2ex}
+                  {2.3ex plus .2ex}
+                  {\normalfont\Large\bfseries\raggedright}
+}
+
+% Оформление подразделов
+\renewcommand{\subsection} {
+  \@startsection{subsection}
+                {2}
+                {18pt}
+                {3.25ex plus 1ex minus .2ex}
+                {1.5ex plus .2ex}
+                {\normalfont\large\bfseries\raggedright}
+}
+
+% Оформление подподразделов
+\renewcommand{\subsubsection} {
+  \@startsection{subsubsection}
+                {3}
+                {18pt}
+                {3.25ex plus 1ex minus .2ex}
+                {1.5ex plus .2ex}
+                {\normalfont\large\bfseries\raggedright}
+}
+
+
+\addto\captionsrussian{\renewcommand\figurename{Рисунок}}
+
+%Оформление подписи рисунка
+%\renewcommand \thefigure{\thesection.\@arabic\c@figure }
+%чтобы номер рисунка содержал номер главы (например, рисунок 2.1) надо закомментировать предыдущую строку
+\renewenvironment{figure}{%
+\let\@makecaption\@makefigurecaption
+\@float{figure}
+}%
+{%
+\addtocontents{lof}{ {\vskip 0.2em} }
+\end@float
+}
+
+\newcommand{\@makefigurecaption}[2]{%
+\vspace{\abovecaptionskip}%
+\sbox{\@tempboxa}{\normalsize #1 --- \normalsize #2}%
+\ifdim \wd\@tempboxa >\hsize {\center\hyphenpenalty=10000\normalsize #1 --- \normalsize #2 \par}%
+\else \global\@minipagefalse \hbox to \hsize
+{\hfil \hyphenpenalty=10000 \normalsize #1 --- \normalsize #2\hfil}%
+\fi \vspace{\belowcaptionskip}}
+
+
+%Оформление подписи таблицы
+%\renewcommand{\thetable}{\@arabic\c@table}
+%чтобы номер таблицы содержал номер главы (например, таблица 2.1) надо закомментировать предыдущую строку
+\renewenvironment{table}{%
+\let\@makecaption\@maketablecaption
+\@float{table}}%
+{%
+\addtocontents{lot}{ {\vskip 0.4em} }%
+\end@float%
+}
+%
+
+\newlength\abovetablecaptionskip
+\newlength\belowtablecaptionskip
+\newlength\tableparindent
+\setlength\abovetablecaptionskip{10\p@}
+\setlength\belowtablecaptionskip{0\p@}
+\setlength\tableparindent{18\p@}
+\newcommand{\@maketablecaption}[2]{
+  \vskip\abovetablecaptionskip
+  \hskip\tableparindent \normalsize #1~---\ \normalsize #2\par
+  \vskip\belowtablecaptionskip
+}
+
+% STUFF
+
+\newcommand*{\authorfirst}[1]{\gdef\@authorfirst{#1}}
+\newcommand*{\@authorfirst}{}
+
+\newcommand*{\authorlast}[1]{\gdef\@authorlast{#1}}
+\newcommand*{\@authorlast}{}
+
+\newcommand*{\mentor}[1]{\gdef\@mentor{#1}}
+\newcommand*{\@mentor}{}
+
+\newcommand*{\mentorjob}[1]{\gdef\@mentorjob{#1}}
+\newcommand*{\@mentorjob}{}
+
+\newcommand*{\faculty}[1]{\gdef\@faculty{#1}}
+\newcommand*{\@faculty}{}
+
+\newcommand*{\subfaculty}[1]{\gdef\@subfaculty{#1}}
+\newcommand*{\@subfaculty}{}
+
+\newcommand*{\specialty}[1]{\gdef\@specialty{#1}}
+\newcommand*{\@specialty}{}
+
+\newcommand*{\reviewer}[1]{\gdef\@reviewer{#1}}
+\newcommand*{\@reviewer}{}
+
+
+
+\title{Модели с переключением состояния}
+\authorlast{Макаревич}
+\authorfirst{Анатолий Сергеевич}
+\author{\@authorlast \@authorfirst}
+
+\mentor{Малюгин Владимир Ильич}
+\mentorjob{доцент, кандидат физико-математических наук, кафедра ММАД}
+\faculty{Факультет Прикладной Математики и Информатики}
+\subfaculty{Кафедра Математического Моделирования и Анализа Данных}
+\specialty{ПКАД (Прикладной Компьютерный Анализ Данных)}
+
+
+% TITLE PAGE
+
+\begin{document}
+
+\begin{titlepage}
+	\begin{center}
+		\small{МИНИСТЕРСТВО ОБРАЗОВАНИЯ РЕСПУБЛИКИ БЕЛАРУСЬ}\\
+		\small{БЕЛОРУССКИЙ ГОСУДАРСТВЕННЫЙ УНИВЕРСИТЕТ}\\
+		\small{\MakeUppercase{\@faculty}}\\
+		\@subfaculty
+	\end{center}
+																			  
+	\vspace{5em}
+																			  
+	\begin{center}
+		\MakeUppercase{\@authorlast} \@authorfirst \\
+		\vspace{1em}
+		\textbf{\MakeUppercase{\@title}} \\
+		\vspace{2em}
+		Магистерская диссертация \\
+		специальнось \@specialty
+	\end{center}
+																			
+	\vspace{2em}
+	\begin{flushright}
+		\begin{minipage}[H]{0.4\textwidth}
+			\begin{flushleft}
+				Научный руководитель \\
+				\@mentor \\
+				\@mentorjob
+			\end{flushleft}
+		\end{minipage}
+	\end{flushright}
+								
+	\vspace{3em}
+								
+	\vfill
+										
+	\begin{flushleft}
+		\begin{minipage}[H]{0.5\textwidth}
+			\begin{flushleft}
+				Допущено к защите \\
+				<<\rule{1cm}{1pt}>> \rule{4cm}{1pt} \the\year г. \\
+				Зав. Кафедрой \\
+				\rule{6cm}{1pt} \\
+				\rule{6cm}{1pt}
+			\end{flushleft}
+		\end{minipage}
+	\end{flushleft}
+																			
+	\vspace{1em}
+																			  
+	\begin{center}
+		Минск, \the\year
+	\end{center}
+\end{titlepage}
+
+% ABSTRACT
+\begin{abstract}
+	Аннотация на русском.
+\end{abstract}
+
+\selectlanguage{english}
+    
+\begin{abstract}
+	Abstract in English.
+\end{abstract}
+    
+\selectlanguage{russian}
+
+% ОГЛАВЛЕНИЕ
+
+\clearpage
+% Название содержания меняем
+\renewcommand{\contentsname}{Содержание}
+\tableofcontents
+
+% Перечень условных обозначений, символов и терминов
+\chapter*{Условные обозначения и термины}
+\addcontentsline{toc}{chapter}{Условные обозначения и термины}
+\markboth{Условные обозначения и термины}{Условные обозначения и термины}
+УСЛОВНЫЕ СИМВОЛЫ ТУТ
+
+% Введение
+% Во «Введении» (объем до 3 страниц) обосновывается актуальность темы, ее значение, выбор направления исследования, показывается необходимость проведения исследований по данной теме для решения конкретной проблемы (задачи), развития конкретных направлений в соответствующих областях науки, отраслях экономики
+\chapter*{Введение}
+\addcontentsline{toc}{chapter}{Введение}
+\markboth{Введение}{Введение}
+ВВЕДЕНИЕ
+
+% Общая характеристика работы
+% «Общая характеристика работы» содержит:
+перечень ключевых слов; 
+цель, задачи, объект и предмет исследования;
+формулировку полученных результатов и их новизну;
+сведения о структуре магистерской диссертации. 
+Перечень ключевых слов характеризует основное содержание магистерской диссертации и включает 10-15 слов в именительном падеже, написанных через запятую в строку прописными буквами. 
+
+% Основная часть
+\chapter{тест1}
+
+\section{тест2}
+
+\section{тест3}
+
+\chapter{тестик}
+
+% Заключение (выводы)
+\chapter*{Заключение}
+\addcontentsline{toc}{chapter}{Заключение}
+\markboth{Заключение}{Заключение}
+ЗАКЛЮЧЕНИЕ ТУТ
+
+% Список использованных источников
+
+% Графический материал
+
+% Программы (при необходимости)
+
+% Приложения (при необходимости)
+
+
+\end{document}
