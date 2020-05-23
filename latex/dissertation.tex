@@ -116,7 +116,14 @@
   \vskip\belowtablecaptionskip
 }
 
-% STUFF
+
+\newcommand{\fakechapter}[1] {
+	\chapter*{#1}
+	\addcontentsline{toc}{chapter}{#1}
+	\markboth{#1}{#1}
+}
+
+% Parameters
 
 \newcommand*{\authorfirst}[1]{\gdef\@authorfirst{#1}}
 \newcommand*{\@authorfirst}{}
@@ -142,7 +149,7 @@
 \newcommand*{\reviewer}[1]{\gdef\@reviewer{#1}}
 \newcommand*{\@reviewer}{}
 
-
+% Values
 
 \title{Модели с переключением состояния}
 \authorlast{Макаревич}
@@ -156,9 +163,9 @@
 \specialty{ПКАД (Прикладной Компьютерный Анализ Данных)}
 
 
-% TITLE PAGE
-
 \begin{document}
+
+% Create title page
 
 \begin{titlepage}
 	\begin{center}
@@ -167,9 +174,9 @@
 		\small{\MakeUppercase{\@faculty}}\\
 		\@subfaculty
 	\end{center}
-																			  
+																							  
 	\vspace{5em}
-																			  
+																							  
 	\begin{center}
 		\MakeUppercase{\@authorlast} \@authorfirst \\
 		\vspace{1em}
@@ -178,7 +185,7 @@
 		Магистерская диссертация \\
 		специальнось \@specialty
 	\end{center}
-																			
+																							
 	\vspace{2em}
 	\begin{flushright}
 		\begin{minipage}[H]{0.4\textwidth}
@@ -189,11 +196,11 @@
 			\end{flushleft}
 		\end{minipage}
 	\end{flushright}
-								
+												
 	\vspace{3em}
-								
+												
 	\vfill
-										
+														
 	\begin{flushleft}
 		\begin{minipage}[H]{0.5\textwidth}
 			\begin{flushleft}
@@ -205,15 +212,17 @@
 			\end{flushleft}
 		\end{minipage}
 	\end{flushleft}
-																			
+																							
 	\vspace{1em}
-																			  
+																							  
 	\begin{center}
 		Минск, \the\year
 	\end{center}
 \end{titlepage}
 
+
 % ABSTRACT
+
 \begin{abstract}
 	Аннотация на русском.
 \end{abstract}
@@ -234,16 +243,12 @@
 \tableofcontents
 
 % Перечень условных обозначений, символов и терминов
-\chapter*{Условные обозначения и термины}
-\addcontentsline{toc}{chapter}{Условные обозначения и термины}
-\markboth{Условные обозначения и термины}{Условные обозначения и термины}
+\fakechapter{Условные обозначения и термины}
 УСЛОВНЫЕ СИМВОЛЫ ТУТ
 
 % Введение
 % Во «Введении» (объем до 3 страниц) обосновывается актуальность темы, ее значение, выбор направления исследования, показывается необходимость проведения исследований по данной теме для решения конкретной проблемы (задачи), развития конкретных направлений в соответствующих областях науки, отраслях экономики
-\chapter*{Введение}
-\addcontentsline{toc}{chapter}{Введение}
-\markboth{Введение}{Введение}
+\fakechapter{Введение}
 ВВЕДЕНИЕ
 
 % Общая характеристика работы
@@ -264,9 +269,7 @@
 \chapter{тестик}
 
 % Заключение (выводы)
-\chapter*{Заключение}
-\addcontentsline{toc}{chapter}{Заключение}
-\markboth{Заключение}{Заключение}
+\fakechapter{Заключение}
 ЗАКЛЮЧЕНИЕ ТУТ
 
 % Список использованных источников
