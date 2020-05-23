@@ -1,0 +1,15 @@
+version: "3.7"
+
+services:
+  local-jupyter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rs-models:${VERSION:-local}
+    ports:
+      - "${JUPYTER_PORT:-8888}:8888"
+    volumes:
+      - ${PROJECT_DIR:-.}/regime_switching:/mnt/regime_switching
+      - ${PROJECT_DIR:-.}/data:/mnt/data
+      - ${PROJECT_DIR:-.}/output:/mnt/output
+      - ${PROJECT_DIR:-.}/notebooks:/mnt/notebooks

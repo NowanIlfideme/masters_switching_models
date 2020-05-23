@@ -1,0 +1,19 @@
+# Scripts
+build.*
+install.*
+
+# Config files
+.pre-commit-config.yaml
+.gitignore
+.gitlab-ci.yml
+
+# Other directories
+**/__pycache__
+old
+materials
+
+# Via volume
+notebooks
+data
+output
+

@@ -8,12 +8,15 @@
 /output
 /materials
 
+/old
+/notebooks/deprecated
+
 # Python temp files
 **.ipynb_checkpoints
 *.pyc
 __pycache__
 
 # setuptools files
-/src/*.egg-info
-/src/build
-/src/dist
+/*.egg-info
+/build
+/dist
