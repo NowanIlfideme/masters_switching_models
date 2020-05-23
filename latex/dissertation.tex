@@ -1,7 +1,23 @@
 \documentclass[a4paper,14pt]{extreport}
 \usepackage[utf8]{inputenc}
 \usepackage[T1, T2A]{fontenc}
+\usepackage{csquotes}
 \usepackage[english, russian]{babel}
+\usepackage{filecontents}
+
+% Bibliography style
+\usepackage[
+style=gost-numeric, %or just numeric
+backend=biber,
+%sorting=ynt,
+language=auto
+]{biblatex}
+
+\begin{filecontents}{fake_bib.bib}
+  % bibliopraphy does here
+\end{filecontents}
+
+\addbibresource{fake_bib.bib}
 
 % Оформление глав, разделов и т.д.
 \makeatletter
@@ -174,9 +190,9 @@
 		\small{\MakeUppercase{\@faculty}}\\
 		\@subfaculty
 	\end{center}
-																							  
+																									  
 	\vspace{5em}
-																							  
+																									  
 	\begin{center}
 		\MakeUppercase{\@authorlast} \@authorfirst \\
 		\vspace{1em}
@@ -185,7 +201,7 @@
 		Магистерская диссертация \\
 		специальнось \@specialty
 	\end{center}
-																							
+																									
 	\vspace{2em}
 	\begin{flushright}
 		\begin{minipage}[H]{0.4\textwidth}
@@ -196,11 +212,11 @@
 			\end{flushleft}
 		\end{minipage}
 	\end{flushright}
-												
-	\vspace{3em}
-												
-	\vfill
 														
+	\vspace{3em}
+														
+	\vfill
+																
 	\begin{flushleft}
 		\begin{minipage}[H]{0.5\textwidth}
 			\begin{flushleft}
@@ -212,9 +228,9 @@
 			\end{flushleft}
 		\end{minipage}
 	\end{flushleft}
-																							
+																									
 	\vspace{1em}
-																							  
+																									  
 	\begin{center}
 		Минск, \the\year
 	\end{center}
@@ -247,7 +263,7 @@
 УСЛОВНЫЕ СИМВОЛЫ ТУТ
 
 % Введение
-% Во «Введении» (объем до 3 страниц) обосновывается актуальность темы, ее значение, выбор направления исследования, показывается необходимость проведения исследований по данной теме для решения конкретной проблемы (задачи), развития конкретных направлений в соответствующих областях науки, отраслях экономики
+% Во «Введении» (объем до 3 страниц) обосновывается актуальность темы, ее значение, выбор направления исследования, показывается необходимость проведения исследований по данной теме для решения конкретной проблемы (задачи), развития конкретных на��равлений в соответствующих областях науки, отраслях экономики
 \fakechapter{Введение}
 ВВЕДЕНИЕ
 
@@ -273,6 +289,8 @@
 ЗАКЛЮЧЕНИЕ ТУТ
 
 % Список использованных источников
+\fakechapter{Список использованных источников}
+\printbibliography[title=Список использованных источников]
 
 % Графический материал
 
