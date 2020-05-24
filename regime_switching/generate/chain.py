@@ -287,7 +287,7 @@ class MarkovChainGenerator(ChainGenerator, CanRandomInstance):
 
     @classmethod
     def get_random_instance(cls, states=2) -> "MarkovChainGenerator":
-        """Create a random instance of ICG."""
+        """Create a random instance of MCG."""
 
         rng = np.random.default_rng()
 
