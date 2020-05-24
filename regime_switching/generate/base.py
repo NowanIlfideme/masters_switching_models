@@ -6,7 +6,7 @@ from typing import Union
 import pandas as pd
 import xarray as xr
 
-from regime_switching.utils.rng import RandomState, fix_rng
+from regime_switching.utils.rng import AnyRandomState, fix_rng
 
 
 class SeriesGenerator(ABC):
@@ -14,12 +14,36 @@ class SeriesGenerator(ABC):
     
     Attributes
     ----------
-    random_state : RandomState
+    params : xr.Dataset
+        Parameters for the generator.
+    random_state : np.random.Generator
         Random state (can be set by seed) used by the generator.
     """
 
-    def __init__(self, random_state: Union[int, RandomState, None] = None):
+    def __init__(
+        self,
+        params: xr.Dataset = None,
+        random_state: AnyRandomState = None,
+        **kwargs
+    ):
+        if isinstance(params, xr.Dataset):
+            params = params.copy()
+        else:
+            params = self.create_params(**kwargs)
+        self.params = self.check_params(params)
         self.random_state = fix_rng(random_state)
+
+    @classmethod
+    @abstractmethod
+    def check_params(cls, params: xr.Dataset) -> xr.Dataset:
+        """Checks and/or corrects parameters."""
+        return params
+
+    @classmethod
+    @abstractmethod
+    def create_params(cls, **kwargs) -> xr.Dataset:
+        """Creates dataset of parameters from keyword arguments."""
+        return xr.Dataset()
 
     @abstractmethod
     def generate(
@@ -38,3 +62,12 @@ class SeriesGenerator(ABC):
 
         res = xr.Dataset(coords={time_dim: index})
         return res
+
+
+class CanRandomInstance(ABC):
+    """Mixin class that specifies a generator can randomize its parameters."""
+
+    @classmethod
+    @abstractmethod
+    def get_random_instance(cls) -> "CanRandomInstance":
+        raise NotImplementedError("This functionality isn't implemented here.")
