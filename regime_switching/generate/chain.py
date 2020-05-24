@@ -17,8 +17,8 @@ class ChainGenerator(SeriesGenerator):
     # generate() is an abstractmethod
 
     @property
-    def state(self) -> xr.DataArray:
-        return self.params["state"]
+    def states(self) -> xr.DataArray:
+        return self.params["states"]
 
 
 class IndependentChainGenerator(ChainGenerator, CanRandomInstance):
@@ -27,7 +27,7 @@ class IndependentChainGenerator(ChainGenerator, CanRandomInstance):
     Attributes
     ----------
     params : xr.Dataset
-        'prob' and 'state'
+        'prob' and 'states'
     random_state : np.random.Generator
         Random generator.
     """
@@ -37,15 +37,15 @@ class IndependentChainGenerator(ChainGenerator, CanRandomInstance):
         params: xr.Dataset = None,
         random_state: AnyRandomState = None,
         prob=None,
-        state=None,
+        states=None,
     ):
         super().__init__(
-            params=params, random_state=random_state, prob=prob, state=state
+            params=params, random_state=random_state, prob=prob, states=states
         )
 
     @property
     def prob(self) -> xr.DataArray:
-        """State probability vector."""
+        """States probability vector."""
         return self.params["prob"].copy()
 
     @classmethod
@@ -62,39 +62,41 @@ class IndependentChainGenerator(ChainGenerator, CanRandomInstance):
         return params
 
     @classmethod
-    def create_params(cls, prob=None, state=None) -> xr.Dataset:
+    def create_params(cls, prob=None, states=None) -> xr.Dataset:
         """Creates dataset of parameters from keyword arguments."""
 
         if prob is None:
-            if state is None:
+            if states is None:
                 raise ValueError(
                     "At least one of `params`, `prob`"
-                    " or `state` must be given."
+                    " or `states` must be given."
                 )
-            if isinstance(state, int):
-                state = range(state)
-            state = np.array(state)
-            # Assume `state` is array-like from now on
-            prob_per = 1.0 / len(state)
+            if isinstance(states, int):
+                states = range(states)
+            states = np.array(states)
+            # Assume `states` is array-like from now on
+            prob_per = 1.0 / len(states)
             prob = xr.DataArray(
-                prob_per, coords={"state": state}, dims=["state"]
+                prob_per, coords={"states": states}, dims=["states"]
             )
         elif isinstance(prob, xr.DataArray):
-            if "state" not in prob.coords:
+            if "states" not in prob.coords:
                 raise ValueError(
-                    f"Expected 'state' coord, found: {prob.coords}"
+                    f"Expected 'states' coord, found: {prob.coords}"
                 )
-            # Ignore `state` as we already have the "state" coord.
+            # Ignore `states` as we already have the "states" coord.
         else:
             # prob is array-like
             prob = np.array(prob)
-            if state is None:
-                state = range(len(prob))
-            elif isinstance(state, int):
-                state = range(state)
-            state = np.array(state)
+            if states is None:
+                states = range(len(prob))
+            elif isinstance(states, int):
+                states = range(states)
+            states = np.array(states)
             # Set
-            prob = xr.DataArray(prob, coords={"state": state}, dims=["state"])
+            prob = xr.DataArray(
+                prob, coords={"states": states}, dims=["states"]
+            )
         params = xr.Dataset({"prob": prob})
         return params
 
@@ -108,25 +110,25 @@ class IndependentChainGenerator(ChainGenerator, CanRandomInstance):
 
         res = super().generate(index, time_dim=time_dim)
         _target = self.random_state.choice(
-            self.state, size=len(res[time_dim]), p=self.prob
+            self.states, size=len(res[time_dim]), p=self.prob
         )
         res[target_name] = xr.DataArray(_target, dims=[time_dim])
 
         return res
 
     @classmethod
-    def get_random_instance(cls, state=2) -> "IndependentChainGenerator":
+    def get_random_instance(cls, states=2) -> "IndependentChainGenerator":
         """Create a random instance of ICG."""
 
-        if isinstance(state, int):
-            state = np.arange(state)
+        if isinstance(states, int):
+            states = np.arange(states)
         else:
-            state = np.array(state)
+            states = np.array(states)
         rng = np.random.default_rng()
-        prob = rng.uniform(0, 1, size=len(state))
+        prob = rng.uniform(0, 1, size=len(states))
         prob = prob / prob.sum()
 
-        return cls(prob=prob, state=state)
+        return cls(prob=prob, states=states)
 
 
 class MarkovChainGenerator(ChainGenerator, CanRandomInstance):
@@ -135,7 +137,7 @@ class MarkovChainGenerator(ChainGenerator, CanRandomInstance):
     Attributes
     ----------
     params : xr.Dataset
-        'initial_prob', 'transition_matrix', 'state' == 'state_out'
+        'initial_prob', 'transition_matrix', 'states' == 'states_out'
     random_state : np.random.Generator
         Random generator.
     """
@@ -146,14 +148,14 @@ class MarkovChainGenerator(ChainGenerator, CanRandomInstance):
         random_state: AnyRandomState = None,
         initial_prob=None,
         transition_matrix=None,
-        state=None,
+        states=None,
     ):
         super().__init__(
             params=params,
             random_state=random_state,
             initial_prob=initial_prob,
             transition_matrix=transition_matrix,
-            state=state,
+            states=states,
         )
 
     @property
@@ -177,7 +179,7 @@ class MarkovChainGenerator(ChainGenerator, CanRandomInstance):
         evec1 = evecs[:, np.isclose(evals, 1)][:, 0]
         stationary = (evec1 / evec1.sum()).real
         res = xr.DataArray(
-            stationary, coords={"state": self.state}, dims=["state"]
+            stationary, coords={"states": self.states}, dims=["states"]
         )
         return res
 
@@ -186,10 +188,10 @@ class MarkovChainGenerator(ChainGenerator, CanRandomInstance):
         """Checks assumptions on 'initial_prob' and 'transition_matrix`."""
 
         # Coordinates
-        if "state" not in params.coords or "state_out" not in params.coords:
-            raise ValueError("Require coordinates 'state' and 'state_out'.")
-        if not np.all(params["state"].values == params["state_out"].values):
-            raise ValueError("Coords 'state' and 'state_out' are different!")
+        if "states" not in params.coords or "states_out" not in params.coords:
+            raise ValueError("Require coordinates 'states' and 'states_out'.")
+        if not np.all(params["states"].values == params["states_out"].values):
+            raise ValueError("Coords 'states' and 'states_out' are different!")
 
         # Initial prob
         p = params["initial_prob"]
@@ -203,23 +205,23 @@ class MarkovChainGenerator(ChainGenerator, CanRandomInstance):
         A = params["transition_matrix"]
         if (A < 0).any().item():
             raise ValueError(f"Probability cannot be negative: {A}")
-        if not np.allclose(A.sum(dim="state_out"), 1):  # TODO: Check dim?
+        if not np.allclose(A.sum(dim="states_out"), 1):  # TODO: Check dim?
             warnings.warn("Probabilities don't sum to one, rescaling.")
-            params["transition_matrix"] = A = A / A.sum(dim="state_out")
+            params["transition_matrix"] = A = A / A.sum(dim="states_out")
 
         return params
 
     @classmethod
     def create_params(
-        cls, initial_prob=None, transition_matrix=None, state=None
+        cls, initial_prob=None, transition_matrix=None, states=None
     ) -> xr.Dataset:
         """Creates dataset of parameters from keyword arguments."""
 
-        # Figure out number of state, and the state themselves
-        if isinstance(state, int):
-            n_states = state
-            state = np.arange(state)
-        elif state is None:
+        # Figure out number of states, and the states themselves
+        if isinstance(states, int):
+            n_states = states
+            states = np.arange(states)
+        elif states is None:
             # Figure out dimensionality from the others
             try:
                 n_states = len(transition_matrix)
@@ -227,11 +229,11 @@ class MarkovChainGenerator(ChainGenerator, CanRandomInstance):
                 try:
                     n_states = len(initial_prob)
                 except TypeError:
-                    raise ValueError("Can't determine number of state.")
-            state = np.arange(n_states)
+                    raise ValueError("Can't determine number of states.")
+            states = np.arange(n_states)
         else:
-            state = np.array(state)
-            n_states = len(state)
+            states = np.array(states)
+            n_states = len(states)
 
         # Figure out transition matrix and initial prob
         if transition_matrix is None:
@@ -243,12 +245,12 @@ class MarkovChainGenerator(ChainGenerator, CanRandomInstance):
 
         # Bring it together
         initial_prob = xr.DataArray(
-            initial_prob, coords={"state": state}, dims=["state"]
+            initial_prob, coords={"states": states}, dims=["states"]
         )
         transition_matrix = xr.DataArray(
             transition_matrix,
-            coords={"state": state, "state_out": state},
-            dims=["state", "state_out"],
+            coords={"states": states, "states_out": states},
+            dims=["states", "states_out"],
         )
         params = xr.Dataset(
             {
@@ -273,35 +275,35 @@ class MarkovChainGenerator(ChainGenerator, CanRandomInstance):
 
         rng = self.random_state
 
-        _target = np.empty(shape=T, dtype=self.state.dtype)
-        curr = _target[0] = rng.choice(self.state, p=self.initial_prob)
+        _target = np.empty(shape=T, dtype=self.states.dtype)
+        curr = _target[0] = rng.choice(self.states, p=self.initial_prob)
         for i in range(1, T):
-            tp = self.transition_matrix.sel(state=curr)
-            curr = _target[i] = rng.choice(self.state, p=tp)
+            tp = self.transition_matrix.sel(states=curr)
+            curr = _target[i] = rng.choice(self.states, p=tp)
 
         res[target_name] = xr.DataArray(_target, dims=[time_dim])
 
         return res
 
     @classmethod
-    def get_random_instance(cls, state=2) -> "MarkovChainGenerator":
+    def get_random_instance(cls, states=2) -> "MarkovChainGenerator":
         """Create a random instance of ICG."""
 
         rng = np.random.default_rng()
 
-        if isinstance(state, int):
-            state = np.arange(state)
+        if isinstance(states, int):
+            states = np.arange(states)
         else:
-            state = np.array(state)
-        N = len(state)
+            states = np.array(states)
+        N = len(states)
 
         p = rng.uniform(0, 1, size=N)
         p = p / np.sum(p)
 
         A = rng.uniform(0, 1, size=(N, N))
-        A = A / np.sum(A, axis=1)[:, np.newaxis]  # sum by 'state_out'
+        A = A / np.sum(A, axis=1)[:, np.newaxis]  # sum by 'states_out'
 
-        return cls(initial_prob=p, transition_matrix=A, state=state)
+        return cls(initial_prob=p, transition_matrix=A, states=states)
 
 
 ICG = IndependentChainGenerator
