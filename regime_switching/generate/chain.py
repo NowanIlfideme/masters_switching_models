@@ -157,14 +157,29 @@ class MarkovChainGenerator(ChainGenerator, CanRandomInstance):
         )
 
     @property
-    def initial_prob(self) -> xr.Dataset:
+    def initial_prob(self) -> xr.DataArray:
         """Initial state probability vector."""
         return self.params["initial_prob"].copy()
 
     @property
-    def transition_matrix(self) -> xr.Dataset:
+    def transition_matrix(self) -> xr.DataArray:
         """Markov state transition matrix."""
         return self.params["transition_matrix"].copy()
+
+    @property
+    def stationary_distribution(self) -> xr.DataArray:
+        """Gets stationary distribution of the Markov chain.
+        
+        Based on this SO answer: https://stackoverflow.com/a/58334399
+        """
+        A = self.transition_matrix.values
+        evals, evecs = np.linalg.eig(A.T)
+        evec1 = evecs[:, np.isclose(evals, 1)][:, 0]
+        stationary = (evec1 / evec1.sum()).real
+        res = xr.DataArray(
+            stationary, coords={"state": self.state}, dims=["state"]
+        )
+        return res
 
     @classmethod
     def check_params(cls, params: xr.Dataset) -> xr.Dataset:
