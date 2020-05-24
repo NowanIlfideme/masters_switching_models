@@ -1,5 +1,6 @@
 """Base class for data series generation."""
 
+import textwrap
 from abc import ABC, abstractmethod
 from typing import Union
 
@@ -24,7 +25,7 @@ class SeriesGenerator(ABC):
         self,
         params: xr.Dataset = None,
         random_state: AnyRandomState = None,
-        **kwargs
+        **kwargs,
     ):
         if isinstance(params, xr.Dataset):
             params = params.copy()
@@ -32,6 +33,12 @@ class SeriesGenerator(ABC):
             params = self.create_params(**kwargs)
         self.params = self.check_params(params)
         self.random_state = fix_rng(random_state)
+
+    def __repr__(self) -> str:
+        """Incomplete representation to hide params"""
+        return f"{type(self).__name__} with params:\n" + textwrap.indent(
+            repr(self.params), prefix="  "
+        )
 
     @classmethod
     @abstractmethod
