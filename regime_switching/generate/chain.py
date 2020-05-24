@@ -43,6 +43,11 @@ class IndependentChainGenerator(ChainGenerator, CanRandomInstance):
             params=params, random_state=random_state, prob=prob, state=state
         )
 
+    @property
+    def prob(self) -> xr.DataArray:
+        """State probability vector."""
+        return self.params["prob"].copy()
+
     @classmethod
     def check_params(cls, params: xr.Dataset) -> xr.Dataset:
         """Checks assumptions on 'prob' and corrects, if needed."""
@@ -92,10 +97,6 @@ class IndependentChainGenerator(ChainGenerator, CanRandomInstance):
             prob = xr.DataArray(prob, coords={"state": state}, dims=["state"])
         params = xr.Dataset({"prob": prob})
         return params
-
-    @property
-    def prob(self) -> xr.DataArray:
-        return self.params["prob"]
 
     def generate(
         self,
@@ -154,6 +155,16 @@ class MarkovChainGenerator(ChainGenerator, CanRandomInstance):
             transition_matrix=transition_matrix,
             state=state,
         )
+
+    @property
+    def initial_prob(self) -> xr.Dataset:
+        """Initial state probability vector."""
+        return self.params["initial_prob"].copy()
+
+    @property
+    def transition_matrix(self) -> xr.Dataset:
+        """Markov state transition matrix."""
+        return self.params["transition_matrix"].copy()
 
     @classmethod
     def check_params(cls, params: xr.Dataset) -> xr.Dataset:
@@ -240,15 +251,22 @@ class MarkovChainGenerator(ChainGenerator, CanRandomInstance):
     ) -> xr.Dataset:
         """Generates 1D series."""
 
-        # res = super().generate(index, time_dim=time_dim)
-        # _target = self.random_state.choice(
-        #     self.state, size=len(res[time_dim]), p=self.prob
-        # )
-        # res[target_name] = xr.DataArray(_target, dims=[time_dim])
+        res = super().generate(index, time_dim=time_dim)
+        T = len(res[time_dim])
 
-        # return res
+        # TODO: Possible to vectorize instead of loop?
 
-        raise NotImplementedError("TODO: Implement.")
+        rng = self.random_state
+
+        _target = np.empty(shape=T, dtype=self.state.dtype)
+        curr = _target[0] = rng.choice(self.state, p=self.initial_prob)
+        for i in range(1, T):
+            tp = self.transition_matrix.sel(state=curr)
+            curr = _target[i] = rng.choice(self.state, p=tp)
+
+        res[target_name] = xr.DataArray(_target, dims=[time_dim])
+
+        return res
 
     @classmethod
     def get_random_instance(cls, state=2) -> "MarkovChainGenerator":
