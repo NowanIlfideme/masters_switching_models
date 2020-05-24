@@ -242,13 +242,15 @@ class MarkovChainGenerator(ChainGenerator, CanRandomInstance):
     ) -> xr.Dataset:
         """Generates 1D series."""
 
-        res = super().generate(index, time_dim=time_dim)
-        _target = self.random_state.choice(
-            self.states, size=len(res[time_dim]), p=self.probs
-        )
-        res[target_name] = xr.DataArray(_target, dims=[time_dim])
+        # res = super().generate(index, time_dim=time_dim)
+        # _target = self.random_state.choice(
+        #     self.states, size=len(res[time_dim]), p=self.probs
+        # )
+        # res[target_name] = xr.DataArray(_target, dims=[time_dim])
 
-        return res
+        # return res
+
+        raise NotImplementedError("TODO: Implement.")
 
     @classmethod
     def get_random_instance(cls, states=2) -> "MarkovChainGenerator":
