@@ -16,7 +16,7 @@ def main():
 
     # Create fake data
 
-    rvs = np.random.RandomState(seed=1800)
+    rvs = np.random.default_rng(seed=1800)
     obs = rvs.normal(3, 3, size=20)
 
     # Create simple model
