@@ -531,7 +531,7 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
 
         T = len(res[time_dim])
         ny = self.n_endog
-        # nx = self.n_exog
+        nx = self.n_exog
         # ky = len(self.lag_endog)
         # kx = len(self.lag_exog)
 
@@ -552,10 +552,47 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
             exog = None
         else:
             if isinstance(exog, xr.DataArray):
-                # TODO: Check sizes
-                pass
+                # Check sizes and dims
+                if "exog" not in exog.coords:
+                    raise ValueError("Rename the variable dimension 'exog'.")
+                if time_dim not in exog.coords:
+                    raise ValueError(f"Expected '{time_dim}' in coords.")
+                if not np.all((exog[time_dim]) == res[time_dim]):
+                    raise ValueError("`exog` time dim differs from index.")
+                if not np.all(exog["exog"] == self.exog):
+                    raise ValueError("`exog` variables differ from params.")
             else:
                 # TODO: Rearrange dimensions if required...
+                exog = np.asfarray(exog).squeeze()
+                err_bad_exog = ValueError(
+                    "Bad shape for `exog`."
+                    f" Expected {(T, nx)}, got {exog.shape}."
+                )
+                if exog.ndim == 0:
+                    if (nx == 1) and (T == 1):
+                        exog = exog[np.newaxis, np.newaxis]
+                    else:
+                        raise ValueError("Broadcasting `exog` not supported.")
+                elif exog.ndim == 1:
+                    if nx == 1:
+                        if T == 1:
+                            raise err_bad_exog
+                        else:
+                            exog = exog[:, np.newaxis]
+                    elif T == 1:
+                        exog = exog[np.newaxis, :]
+                    else:
+                        raise err_bad_exog
+                elif exog.ndim == 2:
+                    if exog.shape == (T, nx):
+                        pass
+                    elif exog.shape == (nx, T):
+                        exog = exog.T
+                    else:
+                        raise err_bad_exog
+                else:
+                    raise err_bad_exog
+
                 exog = xr.DataArray(
                     exog,
                     coords={time_dim: res[time_dim], "exog": self.exog},
@@ -705,7 +742,7 @@ if __name__ == "__main__":
     target_name = "output"
 
     r1 = np.random.default_rng()
-    fake_exog = r1.normal(0, 1, size=(T, 1))
+    fake_exog = r1.normal(0, 1, size=T)  # also could be (T, 1)
 
     res = vg.generate(
         T, time_dim=time_dim, target_name=target_name, exog=fake_exog,
