@@ -63,7 +63,17 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
     Attributes
     ----------
     params : xr.Dataset
-        ''
+        Dataset with coords:
+            'endog' (ny)
+            'target' (ny) equal to 'endog'
+            'exog' (nx)
+            'lag_endog' (ky)
+            'lag_exog' (kx)
+        and variables:
+            'coef_ar' (ny, ny, ky)
+            'coef_exog' (ny, nx, kx)
+            'coef_covariance' (ny, ny)
+            'coef_const' (ny)
     random_state : np.random.Generator
         Random generator.
     """
@@ -95,42 +105,6 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
             coef_covariance=coef_covariance,
             coef_const=coef_const,
         )
-
-    @property
-    def endog(self) -> xr.DataArray:
-        return self.params["endog"].copy()
-
-    @property
-    def exog(self) -> xr.DataArray:
-        return self.params["exog"].copy()
-
-    @property
-    def target(self) -> xr.DataArray:
-        return self.params["target"].copy()
-
-    @property
-    def lag_endog(self) -> xr.DataArray:
-        return self.params["lag_endog"].copy()
-
-    @property
-    def lag_exog(self) -> xr.DataArray:
-        return self.params["lag_exog"].copy()
-
-    @property
-    def coef_ar(self) -> xr.DataArray:
-        return self.params["coef_ar"].copy()
-
-    @property
-    def coef_exog(self) -> xr.DataArray:
-        return self.params["coef_exog"].copy()
-
-    @property
-    def coef_covariance(self) -> xr.DataArray:
-        return self.params["coef_covariance"].copy()
-
-    @property
-    def coef_const(self) -> xr.DataArray:
-        return self.params["coef_const"].copy()
 
     @classmethod
     def check_params(cls, params: xr.Dataset) -> xr.Dataset:
@@ -435,6 +409,42 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
         self, index: Union[int, pd.Index], time_dim: str = "time",
     ) -> xr.Dataset:
         raise NotImplementedError("TODO: Implement.")
+
+    @property
+    def endog(self) -> xr.DataArray:
+        return self.params["endog"].copy()
+
+    @property
+    def exog(self) -> xr.DataArray:
+        return self.params["exog"].copy()
+
+    @property
+    def target(self) -> xr.DataArray:
+        return self.params["target"].copy()
+
+    @property
+    def lag_endog(self) -> xr.DataArray:
+        return self.params["lag_endog"].copy()
+
+    @property
+    def lag_exog(self) -> xr.DataArray:
+        return self.params["lag_exog"].copy()
+
+    @property
+    def coef_ar(self) -> xr.DataArray:
+        return self.params["coef_ar"].copy()
+
+    @property
+    def coef_exog(self) -> xr.DataArray:
+        return self.params["coef_exog"].copy()
+
+    @property
+    def coef_covariance(self) -> xr.DataArray:
+        return self.params["coef_covariance"].copy()
+
+    @property
+    def coef_const(self) -> xr.DataArray:
+        return self.params["coef_const"].copy()
 
 
 if __name__ == "__main__":
