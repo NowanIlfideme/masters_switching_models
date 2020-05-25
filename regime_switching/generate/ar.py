@@ -418,10 +418,105 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
         return res
 
     @classmethod
-    def get_random_instance(cls, states=2) -> "VARXGenerator":
+    def get_random_instance(
+        cls,
+        endog: Union[int, List] = 1,
+        exog: Union[int, List] = 0,
+        lag_endog: Union[int, List] = 2,
+        lag_exog: Union[int, List] = tuple(),
+        max_tries: int = 100,
+    ) -> "VARXGenerator":
         """Create a random instance of VARXGenerator."""
 
-        raise NotImplementedError("TODO: Implement.")
+        rng = np.random.default_rng()
+
+        if isinstance(endog, int):
+            endog = np.arange(endog)
+        else:
+            endog = np.array(endog)
+
+        if isinstance(exog, int):
+            exog = np.arange(exog)
+        else:
+            exog = np.array(exog)
+
+        if isinstance(lag_endog, int):
+            lag_endog = np.arange(1, lag_endog + 1, dtype=int)
+        else:
+            lag_endog = np.array(lag_endog, dtype=int)
+
+        if isinstance(lag_exog, int):
+            lag_exog = np.arange(0, lag_exog + 1, dtype=int)
+        else:
+            lag_exog = np.array(lag_exog, dtype=int)
+
+        # Try generating instances; can fail due to contraints
+        n_errors = 0
+        res = None
+        while (res is None) and (n_errors < max_tries):
+            try:
+                ny = len(endog)
+                nx = len(exog)
+                ky = len(lag_endog)
+                kx = len(lag_exog)
+
+                # NOTE: We add exponential decay to autoregressive weights
+                # (including exog lags) to more likely have a reasonable,
+                # stationary process
+
+                # AR coeffs: (ny, ny, ky)
+                lo_ar = -0.5
+                hi_ar = 1
+                decay_factor_ar = 0.1
+                coef_ar = (
+                    rng.uniform(lo_ar, hi_ar, size=(ny, ny, ky))
+                    * np.exp(-decay_factor_ar * np.arange(ky))[
+                        np.newaxis, np.newaxis, :
+                    ]
+                )
+
+                # Exog coeffs: (ny, nx, kx)
+                lo_exog = -1
+                hi_exog = 1
+                decay_factor_exog = 0.3
+                coef_exog = (
+                    rng.uniform(lo_exog, hi_exog, size=(ny, nx, kx))
+                    * np.exp(-decay_factor_exog * np.arange(kx))[
+                        np.newaxis, np.newaxis, :
+                    ]
+                )
+
+                # Covariance: (ny, ny)
+                rank_L = ny
+                L = rng.uniform(-0.5, 1, size=(ny, rank_L))
+                coef_covariance = L @ L.T  # (ny, ny)
+
+                # Constant
+                lo_const = -1
+                hi_const = 2
+                coef_const = rng.uniform(lo_const, hi_const, size=(ny,))
+
+                # Create class
+                res = cls(
+                    endog=endog,
+                    exog=exog,
+                    lag_endog=lag_endog,
+                    lag_exog=lag_exog,
+                    coef_ar=coef_ar,
+                    coef_exog=coef_exog,
+                    coef_covariance=coef_covariance,
+                    coef_const=coef_const,
+                )
+            except Exception:
+                # TODO: Specify exact exceptions.
+                n_errors += 1
+        if res is None:
+            raise ValueError(
+                "Could not generate a random instance"
+                f" within {max_tries} tries."
+            )
+
+        return res
 
     def generate(
         self,
@@ -583,46 +678,28 @@ if __name__ == "__main__":
     #     lag_exog=[],
     #     coef_exog=[],  # np.array([[[0.5]]]),
     # )
-    vg = VARXGenerator(
-        endog=["a", "b"],  # could also be "abc"
-        coef_const=3,
-        coef_covariance=[[0.1, 0.1], [0.1, 0.3]],
-        lag_endog=[2],
-        coef_ar=np.array([[[0.2, 0.3], [0.21, -0.31]]]),
+
+    # vg = VARXGenerator(
+    #     endog=["a", "b"],  # could also be "abc"
+    #     coef_const=3,
+    #     coef_covariance=[[0.1, 0.1], [0.1, 0.3]],
+    #     lag_endog=[2],
+    #     coef_ar=np.array([[[0.2, 0.3], [0.21, -0.31]]]),
+    # )
+
+    # Get a random instance
+    vg = VARXGenerator.get_random_instance(
+        endog=["a", "b", "c"], lag_endog=[1, 3]
     )
+
     p = vg.params
     print(p)
-
-    # Phi = np.c_[np.eye(len(p.endog))[..., np.newaxis], -p.coef_ar.values]
-    # np.abs(np.roots(Phi.squeeze()))  # only for 1dim
 
     time_dim = "time"
     target_name = "output"
 
-    # generate without AR part
-    res = vg.generate(50)
-    self = vg
-
-    #
-    # T = len(res[time_dim])
-    # a = res[target_name]
-    # b = a.rename({"target": "endog"})
-    # b[time_dim] = pd.RangeIndex(T)
-
-    # for i in range(T):
-    #     q = self.coef_ar.copy()
-    #     q["lag_endog"] = i - self.lag_endog
-    #     q = q.rename({"lag_endog": time_dim})
-    #     effect_i = (
-    #         ((b * q).sum(dim=["time", "endog"]).rename({"target": "endog"}))
-    #         .expand_dims({"time": [i]})
-    #         .reindex(time=b["time"])
-    #         .fillna(0)
-    #     )
-    #     b = b + effect_i
-
-    # b = b.rename({"endog": "target"})
-    # b[time_dim] = a[time_dim]
+    # generate series
+    res = vg.generate(50, time_dim=time_dim, target_name=target_name)
 
     import matplotlib.pyplot as plt
 
