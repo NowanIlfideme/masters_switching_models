@@ -83,14 +83,14 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
         params: xr.Dataset = None,
         random_state: AnyRandomState = None,
         endog=None,  # (ny)
-        exog=None,  # (nx)
-        target=None,  # == endog (ny)
+        exog=[],  # (nx)
         lag_endog=None,  # (ky)
-        lag_exog=None,  # (kx)
+        lag_exog=[],  # (kx)
         coef_ar=None,  # (ny, ny, ky)
-        coef_exog=None,  # (ny, nx, kx)
+        coef_exog=[],  # (ny, nx, kx)
         coef_covariance=None,  # (ny, ny)
         coef_const=None,  # (ny)
+        target=None,  # == endog (ny)
     ):
         super().__init__(
             params=params,
@@ -107,8 +107,25 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
         )
 
     @classmethod
-    def check_params(cls, params: xr.Dataset) -> xr.Dataset:
-        """Checks assumptions on parameters."""
+    def check_params(
+        cls, params: xr.Dataset, action_nonstationary: str = "error"
+    ) -> xr.Dataset:
+        """Checks assumptions on parameters and densifies coefficients.
+        
+        This function:
+            - checks the lag structure (endog and exog lags)
+            - densifies the ar/exog params to be from 0/1 to max lag
+            - checks the covariance matrix (symmetric, positive definite)
+            - checks stationarity
+
+        Parameters
+        ----------
+        params : xr.Dataset
+            Input parameters in xarray form.
+        action_nonstationary : str
+            One of {"error", "ignore", "always", "default", "module", or "once"}
+            Default is "error".
+        """
 
         # Check lag structure
         lag_endog = params["lag_endog"].values
@@ -130,7 +147,7 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
             .fillna({"coef_ar": 0, "coef_exog": 0})
         )
 
-        # Covariance matrix must be
+        # Covariance matrix must be symmetric, positive definite
         require_cov_matrix(params["coef_covariance"].values)
 
         # AR coefs must be stationary
@@ -155,12 +172,13 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
             return is_stationary, eigv
 
         is_stationary, eigv = check_stationary(params["coef_ar"])
-        if not is_stationary:
-            # TODO: Think - maybe raise error instead
-            warnings.warn(
-                "Autoregressive coefficients are nonstationary."
-                f" Norms of eigenvalues should be less than 1: {list(eigv)}."
-            )
+        with warnings.catch_warnings():
+            warnings.simplefilter(action_nonstationary, category=UserWarning)
+            if not is_stationary:
+                warnings.warn(
+                    "Autoregressive coefficients are nonstationary."
+                    f" Norms of eigenvalues should be <1: {list(eigv)}."
+                )
 
         return params
 
@@ -448,15 +466,22 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
 
 
 if __name__ == "__main__":
+    # vg = VARXGenerator(
+    #     endog=["abc", "def"],  # could also be "abc"
+    #     coef_const=[99.0, 98],
+    #     coef_covariance=[[0.1, 0.1], [0.1, 0.3]],
+    #     lag_endog=[2],
+    #     coef_ar=np.array([[[0.2, 0.3], [0.21, -0.31]]]),
+    #     exog=[],
+    #     lag_exog=[],
+    #     coef_exog=[],  # np.array([[[0.5]]]),
+    # )
     vg = VARXGenerator(
-        endog=["abc", "def"],  # could also be "abc"
-        coef_const=[99.0, 98],
+        endog=["a", "b"],  # could also be "abc"
+        coef_const=3,
         coef_covariance=[[0.1, 0.1], [0.1, 0.3]],
         lag_endog=[2],
         coef_ar=np.array([[[0.2, 0.3], [0.21, -0.31]]]),
-        exog=[],
-        lag_exog=[],
-        coef_exog=[],  # np.array([[[0.5]]]),
     )
     p = vg.params
     print(p)
