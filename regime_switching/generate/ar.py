@@ -96,11 +96,66 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
             coef_const=coef_const,
         )
 
+    @property
+    def endog(self) -> xr.DataArray:
+        return self.params["endog"].copy()
+
+    @property
+    def exog(self) -> xr.DataArray:
+        return self.params["exog"].copy()
+
+    @property
+    def target(self) -> xr.DataArray:
+        return self.params["target"].copy()
+
+    @property
+    def lag_endog(self) -> xr.DataArray:
+        return self.params["lag_endog"].copy()
+
+    @property
+    def lag_exog(self) -> xr.DataArray:
+        return self.params["lag_exog"].copy()
+
+    @property
+    def coef_ar(self) -> xr.DataArray:
+        return self.params["coef_ar"].copy()
+
+    @property
+    def coef_exog(self) -> xr.DataArray:
+        return self.params["coef_exog"].copy()
+
+    @property
+    def coef_covariance(self) -> xr.DataArray:
+        return self.params["coef_covariance"].copy()
+
+    @property
+    def coef_const(self) -> xr.DataArray:
+        return self.params["coef_const"].copy()
+
     @classmethod
     def check_params(cls, params: xr.Dataset) -> xr.Dataset:
         """Checks assumptions on parameters."""
 
-        # TODO: Densify parameters (e.g. lags from 0/1 to maxlag)
+        # Check lag structure
+        lag_endog = params["lag_endog"].values
+        lag_exog = params["lag_exog"].values
+
+        if np.any(lag_endog) <= 0:
+            raise ValueError(f"Lags must be positive, got: {lag_endog}")
+
+        if np.any(lag_exog) < 0:
+            raise ValueError(f"Lags must be nonnegative, got: {lag_exog}")
+
+        # Densify parameters (e.g. lags from 0/1 to maxlag)
+        max_lag_endog = lag_endog.max()
+        max_lag_exog = lag_exog.max()
+
+        params = (
+            params.reindex(lag_endog=pd.RangeIndex(1, max_lag_endog + 1))
+            .reindex(lag_exog=pd.RangeIndex(0, max_lag_exog + 1))
+            .fillna({"coef_ar": 0, "coef_exog": 0})
+        )
+
         # Covariance matrix must be
         require_cov_matrix(params["coef_covariance"].values)
 
@@ -183,6 +238,10 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
             ky = try_get_dim(coef_ar, axis=2)
             if ky is None:
                 raise ValueError("Could not calculate `ky` (endog lags).")
+            warnings.warn(
+                f"Assuming {ky} lags for `lag_endog`. "
+                "Please specify in the future."
+            )
             lag_endog = ky
 
         if isinstance(lag_endog, int):
@@ -196,8 +255,6 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
                 raise ValueError(
                     f"Too many dims for lag_endog: {lag_endog.shape}"
                 )
-            if np.any(lag_endog) <= 0:
-                raise ValueError(f"Lags must be positive, got: {lag_endog}")
         ky = len(lag_endog)
 
         #####
@@ -208,6 +265,10 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
             if kx is None:
                 raise ValueError("Could not calculate `kx` (exog lags).")
             lag_exog = kx - 1  # HACK: We add one more later on...
+            warnings.warn(
+                f"Assuming {kx} lags for `lag_exog` (including 0th lag). "
+                "Please specify in the future."
+            )
 
         if isinstance(lag_exog, int):
             lag_exog = np.arange(0, lag_exog + 1)  # yes lag 0 for exog
@@ -220,8 +281,6 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
                 raise ValueError(
                     f"Too many dims for lag_exog: {lag_exog.shape}"
                 )
-            if np.any(lag_exog) < 0:
-                raise ValueError(f"Lags must be nonnegative, got: {lag_exog}")
         kx = len(lag_exog)
 
         #####
@@ -347,10 +406,10 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
 
 if __name__ == "__main__":
     vg = VARXGenerator(
-        # endog="abc",  # could also be ["abc"]
+        endog="abc",  # could also be ["abc"]
         coef_const=[99.0],
         coef_covariance=[[0.1]],
-        # lag_endog=[1, 2],
+        lag_endog=[1, 3],
         coef_ar=np.array([[[0.2, 0.3]]]),
         # exog=[1],
         # lag_exog=[1],
