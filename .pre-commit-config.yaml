@@ -11,6 +11,7 @@ repos:
     rev: 3.7.9
     hooks:
       - id: flake8
+        args: ["--filename=.flake8"]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v2.3.0
     hooks:
