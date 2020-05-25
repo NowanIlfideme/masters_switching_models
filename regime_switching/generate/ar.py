@@ -455,9 +455,9 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
             if exog is not None:
                 warnings.warn("Ignoring the passed `exog`, this is pure VAR.")
             exog = None
-            exog_effect = 0
         else:
             if isinstance(exog, xr.DataArray):
+                # TODO: Check sizes
                 pass
             else:
                 exog = xr.DataArray(
@@ -465,10 +465,29 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
                     coords={time_dim: res[time_dim], "exog": self.exog},
                     dims=[time_dim, "exog"],
                 )
-            # TODO: CRITICAL! Add exog_effect
-            exog_effect = 0
 
-        res[target_name] += exog_effect
+            # TODO: CRITICAL! Add exog_effect
+            # Create a copy to work with
+            e = exog.copy()
+            e[time_dim] = pd.RangeIndex(T)
+            for i in range(T):
+                # Align the AR coeffs with time
+                q = self.coef_exog.copy()
+                q["lag_exog"] = i - self.lag_exog
+                q = q.rename({"lag_exog": time_dim})
+                # Calculate the effect and align with time
+                effect_i = (
+                    (e * q)
+                    .sum(dim=["time", "exog"])
+                    .expand_dims({"time": [i]})
+                    .reindex(time=e["time"])
+                    .fillna(0)
+                )
+                e = e + effect_i
+            # Rename back
+            e[time_dim] = res[time_dim]
+            # Add values
+            res[target_name] += e
 
         # Create innovation (error) process
         innovations = self.random_state.multivariate_normal(
