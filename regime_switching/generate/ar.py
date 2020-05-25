@@ -353,7 +353,7 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
                 raise err_exog
         elif coef_exog.ndim == 2:
             # Do exactly 2 shape dims equal 1?
-            if np.sum(np.array(_sh) == 1) != 2:
+            if np.sum(np.array(_sh) != 1) != 2:
                 raise err_exog
         elif coef_exog.ndim > 3:
             raise err_exog
@@ -730,7 +730,11 @@ if __name__ == "__main__":
 
     # Get a random instance
     vg = VARXGenerator.get_random_instance(
-        endog=["a", "b", "c"], lag_endog=[1, 3], exog=["x"], lag_exog=0
+        endog=["a", "b", "c"],
+        lag_endog=[1, 12],
+        exog=["x"],
+        lag_exog=[0, 2],  # [0, 1, 2],
+        max_tries=100,
     )
 
     p = vg.params
