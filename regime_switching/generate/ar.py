@@ -424,9 +424,72 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
         raise NotImplementedError("TODO: Implement.")
 
     def generate(
-        self, index: Union[int, pd.Index], time_dim: str = "time",
+        self,
+        index: Union[int, pd.Index],
+        exog=None,
+        time_dim: str = "time",
+        target_name: str = "output",
     ) -> xr.Dataset:
-        raise NotImplementedError("TODO: Implement.")
+        """Generates an ND series."""
+
+        res = super().generate(index, time_dim=time_dim)
+
+        T = len(res[time_dim])
+        ny = self.n_endog
+        # nx = self.n_exog
+        # ky = len(self.lag_endog)
+        # kx = len(self.lag_exog)
+
+        # Result will go here
+        res[target_name] = xr.DataArray(
+            np.zeros(shape=(T, ny), dtype=float),
+            coords={time_dim: res[time_dim], "target": self.target},
+            dims=[time_dim, "target"],
+        )
+
+        # Add constant
+        res[target_name] += self.coef_const  # broadcasts
+
+        # Check exog, turn into DataArray, find impact
+        if self.is_pure_ar:
+            if exog is not None:
+                warnings.warn("Ignoring the passed `exog`, this is pure VAR.")
+            exog = None
+            exog_effect = 0
+        else:
+            exog = xr.DataArray(
+                exog,
+                coords={time_dim: res[time_dim], "exog": self.exog},
+                dims=[time_dim, "exog"],
+            )
+            # TODO: CRITICAL! Add exog_effect
+            exog_effect = 0
+
+        res[target_name] += exog_effect
+
+        # Create innovation (error) process
+        innovations = self.random_state.multivariate_normal(
+            mean=np.zeros(ny), cov=self.coef_covariance.values, size=T,
+        )
+
+        res[target_name] += innovations
+
+        # Add rolling AR process
+        # TODO: CRITICAL! Add AR values
+        return res
+
+    @property
+    def n_endog(self) -> int:
+        return len(self.params["endog"])
+
+    @property
+    def n_exog(self) -> int:
+        return len(self.params["exog"])
+
+    @property
+    def is_pure_ar(self) -> bool:
+        """Pure AR if there are no exogenous variables."""
+        return self.n_exog == 0
 
     @property
     def endog(self) -> xr.DataArray:
