@@ -42,6 +42,21 @@ def try_many_get_dim(xs: List[Tuple[Any, int]]) -> Union[int, None]:
     return None
 
 
+def require_cov_matrix(x: np.ndarray) -> np.ndarray:
+    """Checks that the matrix is a valid covariance matrix."""
+
+    x = np.asfarray(x)
+    if (x.ndim != 2) or (x.shape[0] != x.shape[1]):
+        raise ValueError(f"Covariance must be 2D square, got shape: {x.shape}")
+    if not np.allclose(x, x.T):
+        raise ValueError("Covariance matrix should be symmetric.")
+    try:
+        np.linalg.cholesky(x)
+    except np.linalg.LinAlgError:
+        raise ValueError("Covariance matrix should be positive definite.")
+    return x
+
+
 class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
     """Vector Autoregression w/ Exogenous Vars generator.
     
@@ -54,15 +69,42 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
     """
 
     def __init__(
-        self, params: xr.Dataset = None, random_state: AnyRandomState = None,
+        self,
+        params: xr.Dataset = None,
+        random_state: AnyRandomState = None,
+        endog=None,  # (ny)
+        exog=None,  # (nx)
+        target=None,  # == endog (ny)
+        lag_endog=None,  # (ky)
+        lag_exog=None,  # (kx)
+        coef_ar=None,  # (ny, ny, ky)
+        coef_exog=None,  # (ny, nx, kx)
+        coef_covariance=None,  # (ny, ny)
+        coef_const=None,  # (ny)
     ):
         super().__init__(
-            params=params, random_state=random_state,
+            params=params,
+            random_state=random_state,
+            endog=endog,
+            exog=exog,
+            target=target,
+            lag_endog=lag_endog,
+            lag_exog=lag_exog,
+            coef_ar=coef_ar,
+            coef_exog=coef_exog,
+            coef_covariance=coef_covariance,
+            coef_const=coef_const,
         )
 
     @classmethod
     def check_params(cls, params: xr.Dataset) -> xr.Dataset:
         """Checks assumptions on parameters."""
+
+        # TODO: Densify parameters (e.g. lags from 0/1 to maxlag)
+        # Covariance matrix must be
+        require_cov_matrix(params["coef_covariance"].values)
+
+        # TODO: AR coefs must be stationary
 
         return params
 
@@ -182,11 +224,94 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
                 raise ValueError(f"Lags must be nonnegative, got: {lag_exog}")
         kx = len(lag_exog)
 
-        # coef_ar = xr.DataArray(
-        #     coef_ar,
-        #     # coords={'tar'},
-        #     dims=['target', 'lag_endog', 'endog']
-        # )
+        #####
+        # Set coefficients (no checks, just shapes)
+
+        # coef_ar (ny, ny, ky)
+        _sh = (ny, ny, ky)
+        coef_ar = np.asfarray(coef_ar).squeeze()
+        err_ar = ValueError(
+            "Could not figure out shape for `coef_ar`.\n"
+            f"Squeezed is {coef_ar.shape}, expected {_sh}."
+        )
+        if coef_ar.ndim == 0:
+            # all dims must be 1
+            if (ny != 1) or (ky != 1):
+                raise err_ar
+            coef_ar = coef_ar[np.newaxis]
+        elif coef_ar.ndim == 1:
+            # we squeezed, so ny must be 1
+            if (ny != 1) or (ky != coef_ar.shape[0]):
+                raise err_ar
+        elif coef_ar.ndim == 2:
+            # we squeezed, so ky must be 1
+            if (ky != 1) or (coef_ar.shape != (ny, ny)):
+                raise err_ar
+        elif coef_ar.ndim > 3:
+            raise err_ar
+        # coef_ar = np.reshape(coef_ar, _sh)
+        coef_ar.shape = _sh
+
+        # coef_exog (ny, nx, kx)
+        _sh = (ny, nx, kx)
+        coef_exog = np.asfarray(coef_exog).squeeze()
+        err_exog = ValueError(
+            "Could not figure out shape for `coef_exog`.\n"
+            f"Squeezed is {coef_exog.shape}, expected {_sh}."
+        )
+        if coef_exog.ndim == 0:
+            if (ny != 1) or (nx != 1) or (kx != 1):
+                raise err_exog
+            coef_exog = coef_exog[np.newaxis]
+        elif coef_exog.ndim == 1:
+            # Does exactly 1 shape dim equal 1?
+            if np.sum(np.array(_sh) == 1) != 1:
+                raise err_exog
+        elif coef_exog.ndim == 2:
+            # Do exactly 2 shape dims equal 1?
+            if np.sum(np.array(_sh) == 1) != 2:
+                raise err_exog
+        elif coef_exog.ndim > 3:
+            raise err_exog
+        coef_exog.shape = _sh
+
+        # coef_covariance (ny, ny)
+        _sh = (ny, ny)
+        coef_covariance = np.asfarray(coef_covariance).squeeze()
+        err_covariance = ValueError(
+            "Could not figure out shape for `coef_covariance`.\n"
+            f"Squeezed is {coef_covariance.shape}, expected {_sh}."
+        )
+        if coef_covariance.ndim == 0:
+            if ny != 1:
+                raise err_covariance
+            coef_covariance = coef_covariance[np.newaxis, np.newaxis]
+        elif coef_covariance.ndim == 1:
+            if coef_covariance.shape[0] != ny:
+                raise err_covariance
+            # If it works, then it's a diagonal matrix
+            coef_covariance = np.diag(coef_covariance)
+        elif coef_covariance.ndim > 2:
+            # we squeezed, so this is too big
+            raise err_covariance
+        coef_covariance.shape = _sh  # = np.reshape(coef_covariance, _sh)
+
+        # coef_const (ny)
+        _sh = (ny,)
+        coef_const = np.asfarray(coef_const).squeeze()
+        err_const = ValueError(
+            "Could not figure out shape for `coef_const`.\n"
+            f"Squeezed is {coef_const.shape}, expected {_sh}."
+        )
+        if coef_const.ndim == 0:
+            if ny > 1:
+                # Warn, but still allow (e.g. broadcast const = 0)
+                warnings.warn(f"Broadcasting `coef_const` to shape {_sh}.")
+            coef_const = np.full(shape=_sh, fill_value=coef_const, dtype=float)
+        elif coef_const.ndim > 1:
+            raise err_const
+        # coef_const = np.reshape(coef_const, _sh)
+        coef_const.shape = _sh
 
         #####
         # Combine everything
@@ -214,9 +339,14 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
 
         raise NotImplementedError("TODO: Implement.")
 
+    def generate(
+        self, index: Union[int, pd.Index], time_dim: str = "time",
+    ) -> xr.Dataset:
+        raise NotImplementedError("TODO: Implement.")
+
 
 if __name__ == "__main__":
-    p = VARXGenerator.create_params(
+    vg = VARXGenerator(
         # endog="abc",  # could also be ["abc"]
         coef_const=[99.0],
         coef_covariance=[[0.1]],
@@ -226,4 +356,5 @@ if __name__ == "__main__":
         # lag_exog=[1],
         coef_exog=np.array([[[0.5]]]),
     )
+    p = vg.params
     print(p)
