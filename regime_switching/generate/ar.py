@@ -348,8 +348,8 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
                 raise err_exog
             coef_exog = coef_exog[np.newaxis]
         elif coef_exog.ndim == 1:
-            # Does exactly 1 shape dim equal 1?
-            if np.sum(np.array(_sh) == 1) != 1:
+            # Does exactly 1 shape dim not equal 1?
+            if np.sum(np.array(_sh) != 1) != 1:
                 raise err_exog
         elif coef_exog.ndim == 2:
             # Do exactly 2 shape dims equal 1?
@@ -555,13 +555,19 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
                 # TODO: Check sizes
                 pass
             else:
+                # TODO: Rearrange dimensions if required...
                 exog = xr.DataArray(
                     exog,
                     coords={time_dim: res[time_dim], "exog": self.exog},
                     dims=[time_dim, "exog"],
                 )
 
-            # TODO: CRITICAL! Add exog_effect
+            # Start with empty slate
+            exog_effect = xr.DataArray(
+                np.zeros(shape=(T, ny), dtype=float),
+                coords={time_dim: res[time_dim], "target": self.target},
+                dims=[time_dim, "target"],
+            )
             # Create a copy to work with
             e = exog.copy()
             e[time_dim] = pd.RangeIndex(T)
@@ -578,11 +584,9 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
                     .reindex(time=e["time"])
                     .fillna(0)
                 )
-                e = e + effect_i
-            # Rename back
-            e[time_dim] = res[time_dim]
+                exog_effect = exog_effect + effect_i
             # Add values
-            res[target_name] += e
+            res[target_name] += exog_effect
 
         # Create innovation (error) process
         innovations = self.random_state.multivariate_normal(
@@ -689,19 +693,30 @@ if __name__ == "__main__":
 
     # Get a random instance
     vg = VARXGenerator.get_random_instance(
-        endog=["a", "b", "c"], lag_endog=[1, 3]
+        endog=["a", "b", "c"], lag_endog=[1, 3], exog=["x"], lag_exog=0
     )
 
     p = vg.params
     print(p)
 
+    # generate series
+    T = 50
     time_dim = "time"
     target_name = "output"
 
-    # generate series
-    res = vg.generate(50, time_dim=time_dim, target_name=target_name)
+    r1 = np.random.default_rng()
+    fake_exog = r1.normal(0, 1, size=(T, 1))
+
+    res = vg.generate(
+        T, time_dim=time_dim, target_name=target_name, exog=fake_exog,
+    )
 
     import matplotlib.pyplot as plt
 
-    res[target_name].plot.line(hue="target")
+    fig, ax = plt.subplots(
+        2, 1, figsize=(20, 12), gridspec_kw={"height_ratios": [3, 1]}
+    )
+    res[target_name].plot.line(hue="target", ax=ax[0])
+    ax[1].set_ylabel("exog")
+    ax[1].plot(fake_exog, color="black")
     plt.show()
