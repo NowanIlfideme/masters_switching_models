@@ -457,11 +457,14 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
             exog = None
             exog_effect = 0
         else:
-            exog = xr.DataArray(
-                exog,
-                coords={time_dim: res[time_dim], "exog": self.exog},
-                dims=[time_dim, "exog"],
-            )
+            if isinstance(exog, xr.DataArray):
+                pass
+            else:
+                exog = xr.DataArray(
+                    exog,
+                    coords={time_dim: res[time_dim], "exog": self.exog},
+                    dims=[time_dim, "exog"],
+                )
             # TODO: CRITICAL! Add exog_effect
             exog_effect = 0
 
@@ -475,7 +478,29 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
         res[target_name] += innovations
 
         # Add rolling AR process
-        # TODO: CRITICAL! Add AR values
+
+        # Get an easier-to-work-with DataArray
+        b = res[target_name].rename({"target": "endog"})
+        b[time_dim] = pd.RangeIndex(T)
+        for i in range(T):
+            # Align the AR coeffs with time
+            q = self.coef_ar.copy()
+            q["lag_endog"] = i - self.lag_endog
+            q = q.rename({"lag_endog": time_dim})
+            # Calculate the effect and align with time
+            effect_i = (
+                ((b * q).sum(dim=["time", "endog"]).rename({"target": "endog"}))
+                .expand_dims({"time": [i]})
+                .reindex(time=b["time"])
+                .fillna(0)
+            )
+            b = b + effect_i
+        # Rename back
+        b = b.rename({"endog": "target"})
+        b[time_dim] = res[time_dim]
+        # Set back values
+        res[target_name] = b
+
         return res
 
     @property
@@ -551,3 +576,36 @@ if __name__ == "__main__":
 
     # Phi = np.c_[np.eye(len(p.endog))[..., np.newaxis], -p.coef_ar.values]
     # np.abs(np.roots(Phi.squeeze()))  # only for 1dim
+
+    time_dim = "time"
+    target_name = "output"
+
+    # generate without AR part
+    res = vg.generate(50)
+    self = vg
+
+    #
+    # T = len(res[time_dim])
+    # a = res[target_name]
+    # b = a.rename({"target": "endog"})
+    # b[time_dim] = pd.RangeIndex(T)
+
+    # for i in range(T):
+    #     q = self.coef_ar.copy()
+    #     q["lag_endog"] = i - self.lag_endog
+    #     q = q.rename({"lag_endog": time_dim})
+    #     effect_i = (
+    #         ((b * q).sum(dim=["time", "endog"]).rename({"target": "endog"}))
+    #         .expand_dims({"time": [i]})
+    #         .reindex(time=b["time"])
+    #         .fillna(0)
+    #     )
+    #     b = b + effect_i
+
+    # b = b.rename({"endog": "target"})
+    # b[time_dim] = a[time_dim]
+
+    import matplotlib.pyplot as plt
+
+    res[target_name].plot.line(hue="target")
+    plt.show()
