@@ -138,17 +138,17 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
 
         # Check lag structure
         lag_endog = params["lag_endog"].values
-        lag_exog = params["lag_exog"].values
-
         if np.any(lag_endog) <= 0:
             raise ValueError(f"Lags must be positive, got: {lag_endog}")
 
+        lag_exog = params["lag_exog"].values
         if np.any(lag_exog) < 0:
             raise ValueError(f"Lags must be nonnegative, got: {lag_exog}")
 
         # Densify parameters (e.g. lags from 0/1 to maxlag)
         max_lag_endog = lag_endog.max()
-        max_lag_exog = lag_exog.max()
+        max_lag_exog = lag_exog.max() if len(lag_exog > 0) else -1
+        # -1 means range will be [0, 0) i.e. empty
 
         params = (
             params.reindex(lag_endog=pd.RangeIndex(1, max_lag_endog + 1))
@@ -159,7 +159,34 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
         # Covariance matrix must be
         require_cov_matrix(params["coef_covariance"].values)
 
-        # TODO: AR coefs must be stationary
+        # AR coefs must be stationary
+
+        def check_stationary(coef_ar: xr.DataArray) -> Tuple[bool, np.ndarray]:
+            """Takes densified AR coeffs and checks stationarity.
+            
+            Not sure where this code is from - probably based on `statsmodels`.
+            """
+
+            ny = len(coef_ar["endog"])
+            if np.any(coef_ar["target"].values != coef_ar["endog"].values):
+                raise ValueError("'target' and 'endog' must be the same!")
+            ky = len(coef_ar["lag_endog"])
+
+            c_stack = coef_ar.stack(z=["lag_endog", "endog"]).transpose(
+                "z", "target"
+            )
+            A = np.c_[c_stack.values, np.eye(N=ny * ky, M=ny * (ky - 1))]
+            eigv = np.linalg.eigvals(A)
+            is_stationary = np.all(np.abs(eigv) < 1)
+            return is_stationary, eigv
+
+        is_stationary, eigv = check_stationary(params["coef_ar"])
+        if not is_stationary:
+            # TODO: Think - maybe raise error instead
+            warnings.warn(
+                "Autoregressive coefficients are nonstationary."
+                f" Norms of eigenvalues should be less than 1: {list(eigv)}."
+            )
 
         return params
 
@@ -225,7 +252,9 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
             exog = np.arange(exog)
         else:
             exog = np.array(exog).squeeze()
-            if exog.ndim < 1:
+            if exog.size == 0:
+                pass
+            elif exog.ndim < 1:
                 exog = exog[np.newaxis]
             elif exog.ndim > 1:
                 raise ValueError(f"Too many dims for exog: {exog.shape}")
@@ -318,7 +347,11 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
             "Could not figure out shape for `coef_exog`.\n"
             f"Squeezed is {coef_exog.shape}, expected {_sh}."
         )
-        if coef_exog.ndim == 0:
+        if coef_exog.size == 0:
+            # sometimes size will be 0
+            if (nx != 0) and (kx != 0):
+                raise err_exog
+        elif coef_exog.ndim == 0:
             if (ny != 1) or (nx != 1) or (kx != 1):
                 raise err_exog
             coef_exog = coef_exog[np.newaxis]
@@ -406,14 +439,17 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
 
 if __name__ == "__main__":
     vg = VARXGenerator(
-        endog="abc",  # could also be ["abc"]
-        coef_const=[99.0],
-        coef_covariance=[[0.1]],
-        lag_endog=[1, 3],
-        coef_ar=np.array([[[0.2, 0.3]]]),
-        # exog=[1],
-        # lag_exog=[1],
-        coef_exog=np.array([[[0.5]]]),
+        endog=["abc", "def"],  # could also be "abc"
+        coef_const=[99.0, 98],
+        coef_covariance=[[0.1, 0.1], [0.1, 0.3]],
+        lag_endog=[2],
+        coef_ar=np.array([[[0.2, 0.3], [0.21, -0.31]]]),
+        exog=[],
+        lag_exog=[],
+        coef_exog=[],  # np.array([[[0.5]]]),
     )
     p = vg.params
     print(p)
+
+    # Phi = np.c_[np.eye(len(p.endog))[..., np.newaxis], -p.coef_ar.values]
+    # np.abs(np.roots(Phi.squeeze()))  # only for 1dim
