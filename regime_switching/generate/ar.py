@@ -85,7 +85,7 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
         endog=None,  # (ny)
         exog=[],  # (nx)
         lag_endog=None,  # (ky)
-        lag_exog=[],  # (kx)
+        lag_exog=0,  # (kx), or (kx - 1) if int
         coef_ar=None,  # (ny, ny, ky)
         coef_exog=[],  # (ny, nx, kx)
         coef_covariance=None,  # (ny, ny)
@@ -508,7 +508,7 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
                     coef_const=coef_const,
                 )
             except Exception:
-                # TODO: Specify exact exceptions.
+                # Possibly specify exact exceptions?
                 n_errors += 1
         if res is None:
             raise ValueError(
@@ -562,7 +562,7 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
                 if not np.all(exog["exog"] == self.exog):
                     raise ValueError("`exog` variables differ from params.")
             else:
-                # TODO: Rearrange dimensions if required...
+                # Rearrange dimensions if required...
                 exog = np.asfarray(exog).squeeze()
                 err_bad_exog = ValueError(
                     "Bad shape for `exog`."
