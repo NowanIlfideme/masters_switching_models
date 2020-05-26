@@ -5,3 +5,4 @@ select = C,E,F,W,B,B950
 ignore = 
     W291, W293, W391,  # whitespace
     E501,  # allow some beyond lines
+    W503,  # line break before binary operator

@@ -205,7 +205,7 @@ class MarkovChainGenerator(ChainGenerator, CanRandomInstance):
         A = params["transition_matrix"]
         if (A < 0).any().item():
             raise ValueError(f"Probability cannot be negative: {A}")
-        if not np.allclose(A.sum(dim="states_out"), 1):  # TODO: Check dim?
+        if not np.allclose(A.sum(dim="states_out"), 1):
             warnings.warn("Probabilities don't sum to one, rescaling.")
             params["transition_matrix"] = A = A / A.sum(dim="states_out")
 
@@ -287,7 +287,7 @@ class MarkovChainGenerator(ChainGenerator, CanRandomInstance):
 
     @classmethod
     def get_random_instance(cls, states=2) -> "MarkovChainGenerator":
-        """Create a random instance of ICG."""
+        """Create a random instance of MCG."""
 
         rng = np.random.default_rng()
 
