@@ -440,6 +440,7 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
                 coef_initial_values = coef_initial_values[:, np.newaxis]
 
         # double-check :)
+        civ_sh = coef_initial_values.shape
         if coef_initial_values.ndim == 2:
             # (>=ky_max, ==ny)
             if civ_sh[1] != ny:
@@ -795,6 +796,8 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
 
 
 if __name__ == "__main__":
+    vg = VARXGenerator.get_random_instance(endog=1, lag_endog=2)
+
     # vg = VARXGenerator(
     #     endog=["abc", "def"],  # could also be "abc"
     #     coef_const=[99.0, 98],
