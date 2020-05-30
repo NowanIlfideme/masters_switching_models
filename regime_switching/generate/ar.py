@@ -69,11 +69,17 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
             'exog' (nx)
             'lag_endog' (ky)
             'lag_exog' (kx)
+            'pre_vals` (kx_max)
         and variables:
             'coef_ar' (ny, ny, ky)
             'coef_exog' (ny, nx, kx)
             'coef_covariance' (ny, ny)
             'coef_const' (ny)
+            'coef_initial_values' (kx_max, ny)
+
+        Note that `kx_max = max(kx)`, i.e. the largest required lag.
+        Also, the initial values are interpreted "in reverse", 
+        i.e. coef_initial_values[0,:] will have index -1, [1,:] is -2, etc.
     random_state : np.random.Generator
         Random generator.
     """
@@ -90,6 +96,7 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
         coef_exog=[],  # (ny, nx, kx)
         coef_covariance=None,  # (ny, ny)
         coef_const=None,  # (ny)
+        coef_initial_values=None,  # (>=ky_max, ny) "in reverse" order
         target=None,  # == endog (ny)
     ):
         super().__init__(
@@ -104,6 +111,7 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
             coef_exog=coef_exog,
             coef_covariance=coef_covariance,
             coef_const=coef_const,
+            coef_initial_values=coef_initial_values,
         )
 
     @classmethod
@@ -194,6 +202,7 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
         coef_exog=None,  # (ny, nx, kx)
         coef_covariance=None,  # (ny, ny)
         coef_const=None,  # (ny)
+        coef_initial_values=None,  # (ky_max, ny)
     ) -> xr.Dataset:
         """Creates parameters from passed values."""
 
@@ -212,6 +221,7 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
                     (coef_covariance, 0),
                     (coef_ar, 0),
                     (coef_exog, 0),
+                    # (coef_initial_values, 1),  # Too esoteric
                 ]
             )
             if ny is None:
@@ -277,6 +287,7 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
                     f"Too many dims for lag_endog: {lag_endog.shape}"
                 )
         ky = len(lag_endog)
+        ky_max = np.max(lag_endog)
 
         #####
         # kx, i.e. lag_exog (including 0)
@@ -397,6 +408,58 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
         # coef_const = np.reshape(coef_const, _sh)
         coef_const.shape = _sh
 
+        # coef_initial_values (>=ky_max, ny)
+        _sh = (ky_max, ny)
+        if coef_initial_values is None:
+            coef_initial_values = 0
+            warnings.warn("No initial values set, assuming 0.")
+        coef_initial_values = np.asfarray(coef_initial_values).squeeze()
+        civ_sh = coef_initial_values.shape
+        err_initial_values = ValueError(
+            "Could not figure out shape for `coef_const`.\n"
+            f"Squeezed is {civ_sh}, expected {_sh}."
+        )
+        if coef_initial_values.ndim == 0:
+            if ny > 1:
+                # Warn, but still allow (e.g. broadcast const = 0)
+                warnings.warn(
+                    f"Broadcasting `coef_initial_values` to shape {_sh}."
+                )
+            coef_initial_values = np.full(
+                shape=_sh, fill_value=coef_initial_values, dtype=float
+            )
+        elif coef_initial_values.ndim == 1:
+            # Only valid if one of ny or ky_max are of length 1
+            if civ_sh[0] == ny:
+                if ky_max != 1:
+                    raise err_initial_values
+                coef_initial_values = coef_initial_values[np.newaxis, :]
+            elif ny != 1:
+                raise err_initial_values
+            else:  # will later check for ky_max
+                coef_initial_values = coef_initial_values[:, np.newaxis]
+
+        # double-check :)
+        if coef_initial_values.ndim == 2:
+            # (>=ky_max, ==ny)
+            if civ_sh[1] != ny:
+                raise err_initial_values
+            if civ_sh[0] < ky_max:
+                raise ValueError(
+                    "Not enough initial values passed.\n"
+                    f"Expected {_sh}, got {civ_sh}"
+                )
+            elif civ_sh[0] > ky_max:
+                warnings.warn(
+                    f"Too many initial values passed ({civ_sh[0]} > {ky_max}),"
+                    f" ignoring largest {civ_sh[0] - ky_max} lags."
+                )
+            coef_initial_values = coef_initial_values[:ky_max, :]
+        else:
+            raise err_initial_values
+
+        pre_vals = np.arange(-ky_max, 0, dtype=int)  # [-ky_max, ..., -1]
+
         #####
         # Combine everything
         res = xr.Dataset(
@@ -404,7 +467,11 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
                 "coef_ar": (["target", "endog", "lag_endog"], coef_ar),
                 "coef_exog": (["target", "exog", "lag_exog"], coef_exog),
                 "coef_covariance": (["target", "endog"], coef_covariance),
-                "coef_const": (["target"], coef_const)
+                "coef_const": (["target"], coef_const),
+                "coef_initial_values": (
+                    ["pre_vals", "target"],
+                    coef_initial_values,
+                ),
                 # nothing
             },
             coords={
@@ -413,6 +480,7 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
                 "exog": exog,
                 "lag_endog": lag_endog,
                 "lag_exog": lag_exog,
+                "pre_vals": pre_vals,
             },
         )
         return res
@@ -459,6 +527,7 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
                 nx = len(exog)
                 ky = len(lag_endog)
                 kx = len(lag_exog)
+                ky_max = np.max(lag_endog)
 
                 # NOTE: We add exponential decay to autoregressive weights
                 # (including exog lags) to more likely have a reasonable,
@@ -491,10 +560,15 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
                 L = rng.uniform(-0.5, 1, size=(ny, rank_L))
                 coef_covariance = L @ L.T  # (ny, ny)
 
-                # Constant
+                # Constant: (ny, )
                 lo_const = -1
                 hi_const = 2
                 coef_const = rng.uniform(lo_const, hi_const, size=(ny,))
+
+                # Initial values: (ky_max, ny)
+                coef_initial_values = coef_const[np.newaxis, :] * rng.normal(
+                    1, 0.1, size=(ky_max, ny)
+                )
 
                 # Create class
                 res = cls(
@@ -506,6 +580,7 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
                     coef_exog=coef_exog,
                     coef_covariance=coef_covariance,
                     coef_const=coef_const,
+                    coef_initial_values=coef_initial_values,
                 )
             except Exception:
                 # Possibly specify exact exceptions?
@@ -637,6 +712,13 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
         # Get an easier-to-work-with DataArray
         b = res[target_name].rename({"target": "endog"})
         b[time_dim] = pd.RangeIndex(T)
+
+        # Prepend initial values
+        pre = self.coef_initial_values.rename(
+            {"target": "endog", "pre_vals": time_dim}
+        )
+        b = xr.concat([pre, b], dim=time_dim)
+
         for i in range(T):
             # Align the AR coeffs with time
             q = self.coef_ar.copy()
@@ -650,8 +732,8 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
                 .fillna(0)
             )
             b = b + effect_i
-        # Rename back
-        b = b.rename({"endog": "target"})
+        # Rename back, and remove pre-values
+        b = b.rename({"endog": "target"}).sel({time_dim: slice(0, T)})
         b[time_dim] = res[time_dim]
         # Set back values
         res[target_name] = b
@@ -706,6 +788,10 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
     @property
     def coef_const(self) -> xr.DataArray:
         return self.params["coef_const"].copy()
+
+    @property
+    def coef_initial_values(self) -> xr.DataArray:
+        return self.params["coef_initial_values"].copy()
 
 
 if __name__ == "__main__":
