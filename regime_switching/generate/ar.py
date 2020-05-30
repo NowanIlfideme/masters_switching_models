@@ -78,10 +78,17 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
             'coef_initial_values' (kx_max, ny)
 
         Note that `kx_max = max(kx)`, i.e. the largest required lag.
-        Also, the initial values are interpreted "in reverse", 
-        i.e. coef_initial_values[0,:] will have index -1, [1,:] is -2, etc.
+        Also, the initial values are interpreted "in reverse", i.e. 
+        `coef_initial_values[0,:]` will have `pre_vals` == (-kx_max), 
+        `coef_initial_values[1,:]` will have `pre_vals` == (-kx_max + 1), etc.
     random_state : np.random.Generator
         Random generator.
+
+    Parameters
+    ----------
+    action_nonstationary : str
+        One of {"error", "ignore", "always", "default", "module", or "once"}
+        Default is "error".
     """
 
     def __init__(
@@ -98,10 +105,12 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
         coef_const=None,  # (ny)
         coef_initial_values=None,  # (>=ky_max, ny) "in reverse" order
         target=None,  # == endog (ny)
+        check_kwargs=dict(action_nonstationary="error"),
     ):
         super().__init__(
             params=params,
             random_state=random_state,
+            check_kwargs=dict(**check_kwargs),
             endog=endog,
             exog=exog,
             target=target,
