@@ -8,7 +8,7 @@ import pandas as pd  # noqa
 import xarray as xr
 
 from regime_switching.generate.base import CanRandomInstance, SeriesGenerator
-from regime_switching.utils.rng import AnyRandomState
+from regime_switching.utils.rng import AnyRandomState, fix_rng
 
 
 class AutoregressiveGenerator(SeriesGenerator):
@@ -503,10 +503,11 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
         lag_endog: Union[int, List] = 2,
         lag_exog: Union[int, List] = tuple(),
         max_tries: int = 100,
+        random_state: AnyRandomState = None,
     ) -> "VARXGenerator":
         """Create a random instance of VARXGenerator."""
 
-        rng = np.random.default_rng()
+        rng = fix_rng(random_state=random_state)
 
         if isinstance(endog, int):
             endog = np.arange(endog)
@@ -591,6 +592,7 @@ class VARXGenerator(AutoregressiveGenerator, CanRandomInstance):
                     coef_covariance=coef_covariance,
                     coef_const=coef_const,
                     coef_initial_values=coef_initial_values,
+                    random_state=random_state,  # not `rng` :)
                 )
             except Exception:
                 # Possibly specify exact exceptions?
