@@ -2,7 +2,7 @@
 
 import textwrap
 from abc import ABC, abstractmethod
-from typing import Union
+from typing import Any, Dict, Union
 
 import pandas as pd
 import xarray as xr
@@ -25,13 +25,16 @@ class SeriesGenerator(ABC):
         self,
         params: xr.Dataset = None,
         random_state: AnyRandomState = None,
+        check_kwargs: Dict[str, Any] = None,
         **kwargs,
     ):
         if isinstance(params, xr.Dataset):
             params = params.copy()
         else:
             params = self.create_params(**kwargs)
-        self.params = self.check_params(params)
+        if check_kwargs is None:
+            check_kwargs = {}
+        self.params = self.check_params(params, **check_kwargs)
         self.random_state = fix_rng(random_state)
 
     def __repr__(self) -> str:
