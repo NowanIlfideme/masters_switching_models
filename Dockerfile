@@ -14,7 +14,7 @@ COPY env.yml /mnt/env.yml
 RUN conda env create -f /mnt/env.yml -n rs-model
 
 # Add nbextensions
-RUN jupyter contrib nbextension install --sys-prefix --symlink
+RUN /bin/bash -c ". activate rs-model && jupyter contrib nbextension install --sys-prefix --symlink"
 # Append to automatically activate rs-model env for users
 RUN echo "conda activate rs-model" >> ~/.bashrc
 
