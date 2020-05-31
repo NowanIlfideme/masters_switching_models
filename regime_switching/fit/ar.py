@@ -41,7 +41,7 @@ class VAR(pm.Continuous):
 
     TODO
     ----
-    - Figure out n_endog from passed data?
+    - Figure out n_endog from passed data? Or shape argument?
     - Allow non-cholesky parametrization? Or even internalize it?
     - Rename parameters?
     """
@@ -58,9 +58,15 @@ class VAR(pm.Continuous):
         *args,
         **kwargs
     ):
-        super().__init__(*args, **kwargs)
-        self.n_endog = int(n_endog)
-        self.n_lag_endog = int(n_lag_endog)
+        # Calculate shape from n_endog  # TODO: Rename params?...
+        n_endog = int(n_endog)
+        n_lag_endog = int(n_lag_endog)
+        shape = (n_endog,)
+
+        super().__init__(shape=shape, *args, **kwargs)
+
+        self.n_endog = n_endog
+        self.n_lag_endog = n_lag_endog
 
         self.t_const = tt.as_tensor_variable(t_const)
         self.t_init = tt.as_tensor_variable(t_init)
