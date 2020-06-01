@@ -17,3 +17,6 @@ notebooks
 data
 output
 
+# Ignore LaTeX, also mounted to volume
+latex
+latex/output

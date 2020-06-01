@@ -13,3 +13,4 @@ services:
       - ${PROJECT_DIR:-.}/data:/mnt/data
       - ${PROJECT_DIR:-.}/output:/mnt/output
       - ${PROJECT_DIR:-.}/notebooks:/mnt/notebooks
+      - ${PROJECT_DIR:-.}/latex:/mnt/latex
