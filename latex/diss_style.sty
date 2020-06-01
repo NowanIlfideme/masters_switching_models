@@ -1,0 +1,229 @@
+\usepackage[utf8]{inputenc}
+\usepackage[T1, T2A]{fontenc}
+\usepackage{csquotes}
+\usepackage[english, russian]{babel}
+\usepackage{filecontents}
+\usepackage{amsmath}
+
+
+
+% Parameters
+
+\newcommand*{\authorfirst}[1]{\gdef\@authorfirst{#1}}
+\newcommand*{\@authorfirst}{}
+
+\newcommand*{\authorlast}[1]{\gdef\@authorlast{#1}}
+\newcommand*{\@authorlast}{}
+
+\newcommand*{\mentor}[1]{\gdef\@mentor{#1}}
+\newcommand*{\@mentor}{}
+
+\newcommand*{\mentorjob}[1]{\gdef\@mentorjob{#1}}
+\newcommand*{\@mentorjob}{}
+
+\newcommand*{\faculty}[1]{\gdef\@faculty{#1}}
+\newcommand*{\@faculty}{}
+
+\newcommand*{\subfaculty}[1]{\gdef\@subfaculty{#1}}
+\newcommand*{\@subfaculty}{}
+
+\newcommand*{\specialty}[1]{\gdef\@specialty{#1}}
+\newcommand*{\@specialty}{}
+
+\newcommand*{\reviewer}[1]{\gdef\@reviewer{#1}}
+\newcommand*{\@reviewer}{}
+
+
+% Style definitions
+
+\usepackage{anyfontsize}
+
+\newcommand{\fakechapter}[1] {
+	\chapter*{#1}
+	\addcontentsline{toc}{chapter}{#1}
+	\markboth{#1}{#1}
+}
+
+
+% Оформление нумерованных глав
+\renewcommand{\@makechapterhead}[1] {
+  \vspace{36pt} % Пустое место вверху страницы
+  {
+    \centering
+    \parindent=18pt
+    \normalfont\Large\bfseries
+    \chaptername ~ \thechapter{} \par % Номер главы
+    #1 \par % Заголовок текста с новой строки
+    \nopagebreak % Не отрываем заголовок от текста
+    \vspace{36pt} % Пустое место между заголовком и текстом
+  }
+}
+
+% Оформление ненумерованных глав
+\renewcommand{\@makeschapterhead}[1] {
+  \vspace{36pt} % Пустое место вверху страницы
+  {
+    \centering
+    \parindent=18pt
+    \normalfont\Large\bfseries #1 \par
+    \nopagebreak % чтобы не оторвать заголовок от текста
+    \vspace{25pt} % между заголовком и текстом
+  }
+}
+
+
+% Не подавлять абзацный отступ в главах
+\renewcommand{\chapter} {
+  \cleardoublepage\thispagestyle{plain}
+  \global\@topnum=0 \@afterindenttrue \secdef\@chapter\@schapter
+}
+
+
+% Оформление разделов
+
+\renewcommand{\section} {
+    \@startsection{section}
+                  {1}
+                  {18pt}
+                  {3.5ex plus 1ex minus .2ex}
+                  {2.3ex plus .2ex}
+                  {\normalfont\Large\bfseries\raggedright}
+}
+
+\newcommand{\fakesection}[1] {
+    \vspace{4.3ex}
+    {
+        \normalfont \Large \bfseries \raggedright 
+        \fontsize{18pt}{22pt} 
+        #1
+    }
+	\addcontentsline{toc}{section}{#1}
+    \markboth{#1}{#1}
+    \vspace{2.5ex}
+}
+
+
+% Оформление подразделов
+\renewcommand{\subsection} {
+  \@startsection{subsection}
+                {2}
+                {18pt}
+                {3.25ex plus 1ex minus .2ex}
+                {1.5ex plus .2ex}
+                {\normalfont\large\bfseries\raggedright}
+}
+
+% Оформление подподразделов
+\renewcommand{\subsubsection} {
+  \@startsection{subsubsection}
+                {3}
+                {18pt}
+                {3.25ex plus 1ex minus .2ex}
+                {1.5ex plus .2ex}
+                {\normalfont\large\bfseries\raggedright}
+}
+
+
+\addto\captionsrussian{\renewcommand\figurename{Рисунок}}
+
+%Оформление подписи рисунка
+%\renewcommand \thefigure{\thesection.\@arabic\c@figure }
+%чтобы номер рисунка содержал номер главы (например, рисунок 2.1) надо закомментировать предыдущую строку
+\renewenvironment{figure}{
+\let\@makecaption\@makefigurecaption
+\@float{figure}
+}
+{
+\addtocontents{lof}{ {\vskip 0.2em} }
+\end@float
+}
+
+\newcommand{\@makefigurecaption}[2]{
+\vspace{\abovecaptionskip}
+\sbox{\@tempboxa}{\normalsize #1 --- \normalsize #2}
+\ifdim \wd\@tempboxa >\hsize {\center\hyphenpenalty=10000\normalsize #1 --- \normalsize #2 \par}
+\else \global\@minipagefalse \hbox to \hsize
+{\hfil \hyphenpenalty=10000 \normalsize #1 --- \normalsize #2\hfil}
+\fi \vspace{\belowcaptionskip}}
+
+
+%Оформление подписи таблицы
+%\renewcommand{\thetable}{\@arabic\c@table}
+%чтобы номер таблицы содержал номер главы (например, таблица 2.1) надо закомментировать предыдущую строку
+\renewenvironment{table}{
+\let\@makecaption\@maketablecaption
+\@float{table}}
+{
+\addtocontents{lot}{ {\vskip 0.4em} }
+\end@float
+}
+
+
+\newlength\abovetablecaptionskip
+\newlength\belowtablecaptionskip
+\newlength\tableparindent
+\setlength\abovetablecaptionskip{10\p@}
+\setlength\belowtablecaptionskip{0\p@}
+\setlength\tableparindent{18\p@}
+\newcommand{\@maketablecaption}[2]{
+  \vskip\abovetablecaptionskip
+  \hskip\tableparindent \normalsize #1~---\ \normalsize #2\par
+  \vskip\belowtablecaptionskip
+}
+
+\renewcommand{\maketitle}{
+
+    \begin{titlepage}
+        \begin{center}
+            \small{МИНИСТЕРСТВО ОБРАЗОВАНИЯ РЕСПУБЛИКИ БЕЛАРУСЬ}\\
+            \small{БЕЛОРУССКИЙ ГОСУДАРСТВЕННЫЙ УНИВЕРСИТЕТ}\\
+            \small{\MakeUppercase{\@faculty}}\\
+            \@subfaculty
+        \end{center}
+        
+        \vspace{5em}
+        
+        \begin{center}
+            \MakeUppercase{\@authorlast} \@authorfirst \\
+            \vspace{1em}
+            \textbf{\MakeUppercase{\@title}} \\
+            \vspace{2em}
+            Магистерская диссертация \\
+            специальнось \@specialty
+        \end{center}
+        
+        \vspace{2em}
+        \begin{flushright}
+            \begin{minipage}[H]{0.4\textwidth}
+                \begin{flushleft}
+                    Научный руководитель \\
+                    \@mentor \\
+                    \@mentorjob
+                \end{flushleft}
+            \end{minipage}
+        \end{flushright}
+        
+        \vspace{3em}
+        
+        \vfill
+        
+        \begin{flushleft}
+            \begin{minipage}[H]{0.5\textwidth}
+                \begin{flushleft}
+                    Допущено к защите \\
+                    <<\rule{1cm}{1pt}>> \rule{4cm}{1pt} \the\year г. \\
+                    Зав. Кафедрой \\
+                    \rule{6cm}{1pt} \\
+                    \rule{6cm}{1pt}
+                \end{flushleft}
+            \end{minipage}
+        \end{flushleft}
+        
+        \vspace{1em}
+        
+        \begin{center}
+            Минск, \the\year
+        \end{center}
+    \end{titlepage}
+
+}
