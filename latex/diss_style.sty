@@ -171,3 +171,59 @@
   \vskip\belowtablecaptionskip
 }
 
+\renewcommand{\maketitle}{
+
+    \begin{titlepage}
+        \begin{center}
+            \small{МИНИСТЕРСТВО ОБРАЗОВАНИЯ РЕСПУБЛИКИ БЕЛАРУСЬ}\\
+            \small{БЕЛОРУССКИЙ ГОСУДАРСТВЕННЫЙ УНИВЕРСИТЕТ}\\
+            \small{\MakeUppercase{\@faculty}}\\
+            \@subfaculty
+        \end{center}
+        
+        \vspace{5em}
+        
+        \begin{center}
+            \MakeUppercase{\@authorlast} \@authorfirst \\
+            \vspace{1em}
+            \textbf{\MakeUppercase{\@title}} \\
+            \vspace{2em}
+            Магистерская диссертация \\
+            специальнось \@specialty
+        \end{center}
+        
+        \vspace{2em}
+        \begin{flushright}
+            \begin{minipage}[H]{0.4\textwidth}
+                \begin{flushleft}
+                    Научный руководитель \\
+                    \@mentor \\
+                    \@mentorjob
+                \end{flushleft}
+            \end{minipage}
+        \end{flushright}
+        
+        \vspace{3em}
+        
+        \vfill
+        
+        \begin{flushleft}
+            \begin{minipage}[H]{0.5\textwidth}
+                \begin{flushleft}
+                    Допущено к защите \\
+                    <<\rule{1cm}{1pt}>> \rule{4cm}{1pt} \the\year г. \\
+                    Зав. Кафедрой \\
+                    \rule{6cm}{1pt} \\
+                    \rule{6cm}{1pt}
+                \end{flushleft}
+            \end{minipage}
+        \end{flushleft}
+        
+        \vspace{1em}
+        
+        \begin{center}
+            Минск, \the\year
+        \end{center}
+    \end{titlepage}
+
+}
