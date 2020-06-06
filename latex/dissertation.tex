@@ -7,6 +7,7 @@
 \usepackage{caption}
 \usepackage{nameref}
 \usepackage{hyperref}
+\usepackage{listings}
 \usepackage{./diss_style}
 
 % NOTE: Check for � always! They seem to creep up.
@@ -820,6 +821,8 @@ Stan \cite{stan_overview}, PyMC3 \cite{pymc3_2016}, Tensorflow Probability \cite
 
 \section{MS-ARX в парадигме вероятностного программирования}
 
+\label{section:msarx_pp}
+
 Повторим процесс построения наилучшей модели $M.3$ (формула \eqref{eq:ms_arx_m3}) 
 \footnote{Значения вероятности классов модели $M.3$ зависит от начальных условий EM-алгоритма, поэтому для этой части работы значения могут отличаться от предыдущей. В новой итерации все значения случайных параметров фиксированы, см. \nameref{appendix}. }
 , но используя байесовский подход и вероятностное программирование. 
@@ -891,11 +894,6 @@ TODO: Conclusion.
 \addcontentsline{toc}{chapter}{Список использованных источников}
 \markboth{Список использованных источников}{Список использованных источников}
 
-% Графический материал
-
-% Программы (при необходимости)
-
-% Приложения (при необходимости)
 
 \appendix
 \fakechapter{Приложения}
@@ -910,7 +908,7 @@ TODO: Conclusion.
 	\item \genurl{tree/\codeversion} (стабильная версия).
 \end{itemize}
 
-Постоянная версия этого текста доступна по ссылке \genurl{releases/tag/\codelatesttag}
+По этой ссылке доступна также библиотека ``regime\_switching'', разработанная автором, включающая случайные генераторы используемых процессов, вероятностные модели (VAR, MarkovStateTransitions, SwitchingRegression2), и дополнительные утилиты.
 
 Рабочие блокноты (Jupyter notebooks) материалов соответствующих глав/частей доступны по следующим ссылкам:
 
@@ -922,7 +920,71 @@ TODO: Conclusion.
 \end{itemize}
 
 
+Пример программного кода описания вероятностной модели \eqref{eq:ms_arx_m3} из части \ref{section:msarx_pp} (результирующий граф -- рис. \ref{fig:pp_ms_arx_graph_man}):
 
+\lstset{language=Python}
+\begin{lstlisting}
+import pymc3 as pm
+# other imports...
 
+with pm.Model() as m:
+	# Input data
+	pm.Data(
+		"exog", 
+		exog[["t", "gesi[-4]"]].loc[train],
+	)
+	pm.Data("ggdp", endog.loc[train])
+
+	# States from Statsmodels model
+	IntData("sm_states", sm_states)
+
+	# Regression Coefficients
+	pm.Normal(
+		"c", 
+		mu=endog.mean(), 
+		sigma=10, 
+		shape=(L,),
+		testval=endog.mean() 
+			+ np.array([-1, 1]),
+	)
+	pm.Normal("beta", mu=0, sigma=3, shape=(2, L))
+	pm.HalfCauchy("sigma", shape=(L,), beta=3)
+	pm.Deterministic("sigma2", m["sigma"] ** 2)
+
+	# Markov switching Coefficients
+	pm.Dirichlet(
+		"init_probs", 
+		a=tt.as_tensor([1, 1]), 
+		shape=L,
+	)
+	pm.Dirichlet(
+		"state_trans", 
+		a=tt.as_tensor([[5, 2], [2, 5]]), 
+		shape=(L, L),
+	)
+
+	# State process
+	MarkovStateTransitions(
+		"states",
+		trans_prob=m["state_trans"],
+		init_prob=m["init_probs"],
+		shape=(T,),
+		testval=m['sm_states'].get_value(),
+	)
+
+	# Regression process
+	sr = SwitchingRegression2(
+		"y",
+		intercept=m["c"],
+		coef=m["beta"],
+		sigma=m["sigma"],
+		states=m["states"],
+		exog=m["exog"],
+		shape=(T,),
+		observed=m["ggdp"],
+	)
+\end{lstlisting}
+
+Постоянная версия текста этой диссертации доступна по ссылке \genurl{releases/tag/\codelatesttag}
 
 \end{document}
