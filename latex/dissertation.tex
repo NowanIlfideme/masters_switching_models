@@ -8,6 +8,8 @@
 \usepackage{nameref}
 \usepackage{hyperref}
 \usepackage{listings}
+\usepackage{lastpage}
+\usepackage[figure,table]{totalcount}
 \usepackage{./diss_style}
 
 % NOTE: Check for � always! They seem to creep up.
@@ -62,11 +64,11 @@ language=auto
 % сведения о структуре магистерской диссертации. 
 % Перечень ключевых слов характеризует основное содержание магистерской диссертации и включает 10-15 слов в именител/ьном падеже, написанных через запятую в строку прописными буквами. 
 
-\fakechapter{Реферат}
+\fakechapter{Общая характеристика работы}
 
-Работа: N стр., N табл., N рис., N источников, N приложений
+Магистерская диссертация: \pageref{LastPage} стр., \totaltables\ табл., \totalfigures\ рис., 25 источников, 1 приложение
 
-\MakeUppercase{временные ряды, модели с переключением состояний, анализ поворотных точек экономических циклов}
+\MakeUppercase{временные ряды, модели с переключением состояний, анализ поворотных точек экономических циклов, вероятностное программирование, байесовское моделирование}
 
 Объекты исследования -- математические модели временных рядов, использующие переключение состояния; индикаторы экономики Республики Беларусь.
 
@@ -74,8 +76,25 @@ language=auto
 
 Методы исследования -- компьютерное моделирование временных рядов (индикаторы экономики Республики Беларусь и сгенерированные ряды). Используются как байесовские, так и классические статистические подходы.
 
-В результате исследования получены новые модели для годовых темпов роста ВВП РБ, подтверждение опережающего характера индикатора экономических настроений (ИЭН). Также получены новые подходы к оценке параметров более общих RS-моделей.
+В результате исследования получены новые модели для годовых темпов роста ВВП РБ, подтверждение опережающего характера индикатора экономических настроений (ИЭН). Также получены новые подходы к оценке параметров более общих RS-моделей на основании вероятностного программирования.
 
+
+\selectlanguage{english}
+\fakechapter{Thesis}
+
+Master's Dissertation: \pageref{LastPage} pages, \totaltables\ tables, \totalfigures\ images, 25 sources, 1 document
+
+\MakeUppercase{time series, regime-switching models, turning points of business cycles, probabilistic programming, Bayesian modelling}
+
+Objects studied -- mathematical regime-switching time series models; economic indicators of the Republic of Belarus.
+
+The objective of this work is to investigate the properties of regime-switching time series models (including subclasses such as MS-VARX and IS-VARX) and their applicability to econometric modelling. The practical example used is the analysis of turning points in the business cycle of the Belarusian GDP.
+
+Methods used: computational modelling of both generated processes and real time series (economic indicators); both classical and Bayesian methods are used.
+
+The main results include new models for the growth rate of the Belarusian GDP (which confirm the usefulness and leading behavior of the ESI, Economic Sentiment Index) and an exploration of relatively new methods of estimating regime-switching models (based on probabilistic programming).
+
+\selectlanguage{russian}
 
 % ОГЛАВЛЕНИЕ
 
