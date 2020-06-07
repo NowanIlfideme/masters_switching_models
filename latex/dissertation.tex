@@ -39,7 +39,7 @@ language=auto
 \faculty{Факультет Прикладной Математики и Информатики}
 \subfaculty{Кафедра Математического Моделирования и Анализа Данных}
 \specialty{ПКАД (Прикладной Компьютерный Анализ Данных)}
-
+\department{ММАД}
 
 % Repository commands (for links)
 
@@ -47,6 +47,10 @@ language=auto
 \newcommand{\codeversion}{v0.2}
 \newcommand{\codelatesttag}{v0.2}
 \newcommand{\genurl}[1]{\url{\coderepo/#1}}
+
+
+\newcommand{\totalreferences}{26}
+\newcommand{\totalformulas}{29}
 
 
 \begin{document}
@@ -66,7 +70,7 @@ language=auto
 
 \fakechapter{Общая характеристика работы}
 
-Магистерская диссертация: \pageref{LastPage} стр., \totaltables\ табл., \totalfigures\ рис., 26 источников, 29 формул, 1 приложение
+Магистерская диссертация: \pageref{LastPage} стр., \totaltables\ табл., \totalfigures\ рис., \totalreferences\ источников, \totalformulas\ формул, 1 приложение
 
 \MakeUppercase{временные ряды, модели с переключением состояния, анализ поворотных точек экономических циклов, вероятностное программирование, байесовское моделирование}
 
@@ -80,9 +84,9 @@ language=auto
 
 
 \selectlanguage{english}
-\fakechapter{Thesis}
+\fakechapter{Abstract}
 
-Master's Dissertation: \pageref{LastPage} pages, \totaltables\ tables, \totalfigures\ images, 26 references, 29 formulas, 1 appendix
+Master's Dissertation: \pageref{LastPage} pages, \totaltables\ tables, \totalfigures\ images, \totalreferences\ references, \totalformulas\ formulas, 1 appendix
 
 \MakeUppercase{time series, regime-switching models, turning points of business cycles, probabilistic programming, Bayesian modelling}
 
@@ -104,7 +108,7 @@ The main results include new models for the growth rate of the Belarusian GDP (w
 
 
 % Перечень условных обозначений, символов и терминов
-\fakechapter{Условные обозначения и термины}
+\fakechapter{Перечень условных обозначений и сокращений}
 
 \textbf{GDP} -- ВВП (gross domestic product, валовый внутренний продукт), базовый макроэкономический индикатор.
 
@@ -944,7 +948,7 @@ Stan \cite{stan_overview}, PyMC3 \cite{pymc3_2016}, Tensorflow Probability \cite
 	      \end{enumerate}
 	\item На основании результатов как вычислительных/симуляционных экспериментов, так и применения к реальной эконометрической задаче, можно сделать вывод о возможности и целесообразности моделирования процессов со скрытым состоянием байесовскими методами:
 	      \begin{enumerate}
-		      \item Главное преимущество вероятностного программирования заключается в возможности использования одного и того же автоматизированного алгоритма (MCMC/NUTS) для оценивания параметров модели; необходимо определить только байесовский граф модели и функцию правдоподобия для соответствующих процессов \footnote{По сравнению с классическим вариантом, где необходимо менять алгоритм оценивания при значительном изменении формулировки процессов. }.
+		      \item Главное преимущество вероятностного пр��граммирования заключается в возможности использования одного и того же автоматизированного алгоритма (MCMC/NUTS) для оценивания параметров модели; необходимо определить только байесовский граф модели и функцию правдоподобия для соответствующих процессов \footnote{По сравнению с классическим вариантом, где необходимо менять алгоритм оценивания при значительном изменении формулировки процессов. }.
 		      \item Однако существуют и некоторые недостатки: время работы алгоритмов семплирования MCMC значительно дольше даже классических итерационных, и проблема ``label switching’’ (перескок классов внутри цепи MCMC) для моделей с векторными параметрами всё еще является препятствием для стабильной работы и сходимости этих алгоритмов.
 	      \end{enumerate}
 	\item Разработана программная библиотека ``regime\_switching’’ на языке Python, поддерживающая генерацию и моделирование (оценивание параметров) моделей VAR и моделей с переключением состояния. Она доступна онлайн совместно с материалами этой диссертации (см. \nameref{appendix}).
