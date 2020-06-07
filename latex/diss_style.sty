@@ -27,6 +27,9 @@
 \newcommand*{\subfaculty}[1]{\gdef\@subfaculty{#1}}
 \newcommand*{\@subfaculty}{}
 
+\newcommand*{\department}[1]{\gdef\@department{#1}}
+\newcommand*{\@department}{}
+
 \newcommand*{\specialty}[1]{\gdef\@specialty{#1}}
 \newcommand*{\@specialty}{}
 
@@ -210,7 +213,7 @@
                 \begin{flushleft}
                     Допущено к защите \\
                     <<\rule{1cm}{1pt}>> \rule{4cm}{1pt} \the\year г. \\
-                    Зав. Кафедрой \\
+                    Зав. кафедрой \@department \\
                     \rule{6cm}{1pt} \\
                     \rule{6cm}{1pt}
                 \end{flushleft}
