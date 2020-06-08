@@ -36,6 +36,12 @@
 \newcommand*{\reviewer}[1]{\gdef\@reviewer{#1}}
 \newcommand*{\@reviewer}{}
 
+\newcommand*{\whosigns}[1]{\gdef\@whosigns{#1}}
+\newcommand*{\@whosigns}{
+    \rule{6cm}{1pt} \\
+    \rule{6cm}{1pt} \\
+    \rule{6cm}{1pt}
+}
 
 % Style definitions
 
@@ -204,7 +210,7 @@
             \end{minipage}
         \end{flushright}
         
-        \vspace{3em}
+        \vspace{1em}
         
         \vfill
         
@@ -213,9 +219,7 @@
                 \begin{flushleft}
                     Допущено к защите \\
                     <<\rule{1cm}{1pt}>> \rule{4cm}{1pt} \the\year г. \\
-                    Зав. кафедрой \@department \\
-                    \rule{6cm}{1pt} \\
-                    \rule{6cm}{1pt}
+                    \@whosigns
                 \end{flushleft}
             \end{minipage}
         \end{flushleft}
